@@ -15,9 +15,7 @@ Measuring LLM performance (TPS and Latency) for autonomous web browsing using Op
 *   **Context Penalty:** Identified the $O(N^2)$ prefill bottleneck when passing raw 32K+ token DOM snapshots to local models.
 *   **Long-Context Tests:** Implemented Needle-In-A-Haystack testing for local MLX models.
 
-### 3. Quantitative Trading (`/quant_trading`)
-Machine Learning algorithms for the US stock market (AI & Semiconductors) and Taiwan Stock Exchange (台股).
-*   **v1.0 Algorithm:** Random Forest classifier predicting daily price movements based on momentum (RSI, MACD) and volatility (Bollinger Bands). Backtested against historical data.
+
 
 ---
 *Auto-managed by OpenClaw Assistant.*
