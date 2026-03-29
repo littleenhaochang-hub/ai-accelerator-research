@@ -46,7 +46,7 @@ class AutoResearcher:
     def generate_ideas(self, baseline_code):
         print(f"\n[Phase 1] Generating research ideas for {self.project_name}...")
         
-        override_file = self.project_dir / "auto_researcher" / "prompt_override.txt"
+        override_file = self.project_dir / "prompt_override.txt"
         specific_goal = ""
         if override_file.exists():
             with open(override_file, 'r') as f:

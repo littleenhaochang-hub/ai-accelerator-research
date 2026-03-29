@@ -1,0 +1,3 @@
+SPECIFIC RESEARCH FOCUS: Fused Kernel for DeepSeek MLA Low-Rank Up-Projection.
+The previous experiment showed that splitting W_up into M_X1 and M_X2 reduced FLOPs but INCREASED wall-clock latency due to intermediate SRAM read/write thrashing.
+Your goal: Write a PyTorch script that simulates a fused kernel (e.g., using `torch.compile(mode="reduce-overhead")` or manual block fusion) to execute the `(c_kv @ M_X1) @ M_X2` projection in a single pass without materializing the intermediate tensor in HBM. Prove that the wall-clock latency is now strictly faster than the dense baseline.

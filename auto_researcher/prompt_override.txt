@@ -1,7 +1,11 @@
-    SPECIFIC RESEARCH FOCUS: W4A4 (4-Bit Weight, 4-Bit Activation) Quantization for LLM Feed-Forward Networks (FFN).
-    The baseline code simulates a catastrophic failure when applying standard uniform 4-bit quantization to FFN activations due to massive, channel-wise outliers (a known issue in LLaMA/Qwen architectures). 
+    SPECIFIC RESEARCH FOCUS: DeepSeek Multi-Head Latent Attention (MLA) Optimization.
+    The baseline code simulates the extreme KV Cache compression of MLA vs standard Multi-Head Attention (MHA). 
+    While MLA dramatically shrinks the memory bandwidth bottleneck (e.g., 32MB down to 4MB for Edge GPUs), expanding the latent vector `c_kv` into full Key and Value tensors during the forward pass requires massive O(N^2) FLOPs on the Up-Projection matrices.
     
-    Your goal: Propose a novel hardware-software co-design technique to achieve >98% accuracy for W4A4 quantization. 
-    Consider State-of-the-Art approaches like "FlatQuant" (ICML 2025) which use "Fast and Learnable Affine Transformations" or channel-wise outlier smoothing/splitting before the quantization step. 
+    Your goal: Propose a novel hardware-software co-design technique to optimize the Up-Projection step of MLA so it does not throttle the ALU (Arithmetic Logic Unit) while preserving the memory savings.
+    Consider approaches like:
+    1. Low-rank approximations or sparse up-projections.
+    2. Fused kernels that compute attention directly in the latent space without full materialization of K and V.
+    3. Quantized or block-wise up-projection matrices tailored for Edge NPUs.
     
-    The output MUST be a PyTorch simulation that demonstrates a measurable improvement in W4A4 FFN Output Accuracy compared to the naive baseline.
+    The output MUST be a PyTorch simulation that demonstrates a measurable improvement in FLOPs or theoretical latency for the Up-Projection phase compared to the baseline MLA implementation.

@@ -1,5 +1,6 @@
 {
   "attempted_ideas": [
-    "Adaptive Group-wise Outlier Retention (AGOR) for Activations"
+    "Adaptive Group-wise Outlier Retention (AGOR) for Activations",
+    "Channel-wise Min-Max Affine Pre-Quantization Transformation"
   ]
 }

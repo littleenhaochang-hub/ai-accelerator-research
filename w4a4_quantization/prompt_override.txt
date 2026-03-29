@@ -1,0 +1,3 @@
+SPECIFIC RESEARCH FOCUS: FlatQuant-style Affine Transformations for W4A4.
+Instead of separating outliers into FP16 (AGOR), simulate the "FlatQuant" (ICML 2025) approach.
+Apply a channel-wise affine transformation (scaling/shifting or Hadamard smoothing) to the activation tensor BEFORE quantization. This mathematically flattens the extreme outliers, allowing the ENTIRE tensor to be quantized to uniform INT4 without any sparse FP16 branching. Measure the memory footprint and the Cosine Similarity recovery.
