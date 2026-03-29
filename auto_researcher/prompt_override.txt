@@ -1,5 +1,7 @@
-    The current TurboQuant baseline uses a dense random orthogonal matrix R (O(N^2) complexity). 
-    While acceptable during the memory-bound Decode phase, this O(N^2) rotation imposes a massive compute penalty during the compute-bound Encode (Prefill) phase for long contexts (e.g., 100K tokens).
+    SPECIFIC RESEARCH FOCUS: W4A4 (4-Bit Weight, 4-Bit Activation) Quantization for LLM Feed-Forward Networks (FFN).
+    The baseline code simulates a catastrophic failure when applying standard uniform 4-bit quantization to FFN activations due to massive, channel-wise outliers (a known issue in LLaMA/Qwen architectures). 
     
-    Your goal: Design an algorithmic or architectural solution to mitigate this Encode-phase compute penalty while maintaining the outlier-smearing benefits of the rotation.
-    Consider hybrid approaches, structured sparse matrices, or hardware-aware asynchronous compression pipelines.
+    Your goal: Propose a novel hardware-software co-design technique to achieve >98% accuracy for W4A4 quantization. 
+    Consider State-of-the-Art approaches like "FlatQuant" (ICML 2025) which use "Fast and Learnable Affine Transformations" or channel-wise outlier smoothing/splitting before the quantization step. 
+    
+    The output MUST be a PyTorch simulation that demonstrates a measurable improvement in W4A4 FFN Output Accuracy compared to the naive baseline.
