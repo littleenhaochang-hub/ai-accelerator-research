@@ -1,0 +1,5 @@
+    The current TurboQuant baseline uses a dense random orthogonal matrix R (O(N^2) complexity). 
+    While acceptable during the memory-bound Decode phase, this O(N^2) rotation imposes a massive compute penalty during the compute-bound Encode (Prefill) phase for long contexts (e.g., 100K tokens).
+    
+    Your goal: Design an algorithmic or architectural solution to mitigate this Encode-phase compute penalty while maintaining the outlier-smearing benefits of the rotation.
+    Consider hybrid approaches, structured sparse matrices, or hardware-aware asynchronous compression pipelines.

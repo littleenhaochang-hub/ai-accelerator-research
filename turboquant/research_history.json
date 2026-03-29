@@ -1,6 +1,7 @@
 {
   "attempted_ideas": [
     "Walsh-Hadamard Transform for PolarQuant",
-    "Randomized Butterfly Transform for PolarQuant"
+    "Randomized Butterfly Transform for PolarQuant",
+    "Chained Householder Reflections for Efficient PolarQuant"
   ]
 }

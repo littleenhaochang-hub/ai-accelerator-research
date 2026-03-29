@@ -45,6 +45,13 @@ class AutoResearcher:
 
     def generate_ideas(self, baseline_code):
         print(f"\n[Phase 1] Generating research ideas for {self.project_name}...")
+        
+        override_file = self.project_dir / "auto_researcher" / "prompt_override.txt"
+        specific_goal = ""
+        if override_file.exists():
+            with open(override_file, 'r') as f:
+                specific_goal = f"\nSPECIFIC RESEARCH FOCUS FOR THIS ITERATION:\n{f.read()}\n"
+
         prompt = f"""
         You are an elite AI Hardware Accelerator Architect.
         Review the following baseline PyTorch implementation for a hardware/algorithm optimization.
@@ -56,6 +63,7 @@ class AutoResearcher:
         
         Previous ideas we have already tried (DO NOT SUGGEST THESE):
         {self.history['attempted_ideas']}
+        {specific_goal}
         
         Propose exactly ONE novel, highly specific mathematical or architectural modification to improve this code.
         Focus on memory compression, compute throughput, or quantization techniques relevant to modern LLMs/Accelerators (like Qwen, Llama).
