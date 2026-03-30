@@ -43,6 +43,16 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Findings:** Simulated forcing 80% of "easy" tokens to skip the last 8 layers of a 16-layer transformer, achieving a theoretical FLOPs/Latency reduction of `~38%`.
 - **The Bottleneck:** The PyTorch gather/scatter operations (boolean masking) needed to route tokens introduce severe memory bandwidth overhead. Reading sparse token indices from memory is often slower than just computing the dense matrix multiplication on GPUs/NPUs. 
 
+### 3.2 Early-Exit Classifiers (`3_2_early_exit_classifiers`)
+- **Status:** Baseline Prototyped.
+- **Findings:** Modeled the computational overhead of running a confidence scorer (e.g., an MLP) at every layer boundary.
+- **The Bottleneck:** The latency spent calculating "should I exit?" often exceeds the latency saved by actually exiting. Needs zero-classifier heuristics (e.g., cosine similarity tracking).
+
+### 3.3 Flexible N:M Structured Sparsity (`3_3_flexible_nm_sparsity`)
+- **Status:** Baseline Prototyped.
+- **Findings:** Simulated a 2:4 structured sparse weight matrix by masking 50% of elements to zero.
+- **The Bottleneck:** Without specialized tensor cores (like Nvidia Ampere), Apple Silicon and generic Edge NPUs still execute the floating-point math for the zeroes. Zero-masking provides 0% speedup. Needs software-level vector packing.
+
 ### 3.2 Token Pruning (`3_1_token_pruning`)
 - **Status:** Baseline Prototyped.
 - **Findings:** Physically dropping 50% of the least-attended tokens halves the sequence length for deeper layers.
@@ -71,6 +81,16 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Status:** Evaluated and Bottleneck Identified.
 - **Findings:** QLoRA successfully compresses trainable parameters to `< 0.4%` of the base LLM. However, it cannot be run on mobile/edge devices for 4K+ contexts.
 - **The Bottleneck:** The Forward Activation Memory Wall. PyTorch must store the full intermediate activation tensor $X$ for every token in the 4K sequence to compute gradients for the $A$ and $B$ LoRA matrices. This consumes >16GB of SRAM, forcing catastrophic OS SSD swapping.
+
+### 5.2 Hardware LoRA Updates (`5_1_hardware_lora_updates`)
+- **Status:** Baseline Prototyped.
+- **Findings:** Modeled the physical memory matrix operations for computing the $dA$ gradient.
+- **The Bottleneck:** Transposing the massive $X$ (Activations) matrix for $X^T \cdot dY \cdot B^T$ completely destroys CPU/GPU cache locality. Needs a Transpose-Free Backprop algorithm.
+
+### 5.3 Gradient Compression (`5_2_gradient_compression`)
+- **Status:** Baseline Prototyped.
+- **Findings:** Simulated compressing backprop gradients down to 8-bit.
+- **The Bottleneck:** The presence of a single gradient outlier destroys the dynamic range of the 8-bit scale, causing the MSE error to explode and diverging QLoRA fine-tuning. Needs Block-Floating Point (BFP) or Error-Feedback.
 
 ---
 
