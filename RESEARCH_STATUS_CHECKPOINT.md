@@ -43,9 +43,19 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Findings:** Simulated forcing 80% of "easy" tokens to skip the last 8 layers of a 16-layer transformer, achieving a theoretical FLOPs/Latency reduction of `~38%`.
 - **The Bottleneck:** The PyTorch gather/scatter operations (boolean masking) needed to route tokens introduce severe memory bandwidth overhead. Reading sparse token indices from memory is often slower than just computing the dense matrix multiplication on GPUs/NPUs. 
 
+### 3.2 Token Pruning (`3_1_token_pruning`)
+- **Status:** Baseline Prototyped.
+- **Findings:** Physically dropping 50% of the least-attended tokens halves the sequence length for deeper layers.
+- **The Bottleneck:** Changing the sequence length dynamically destroys static batching and padding on NPUs (like the Apple Neural Engine), forcing slow dynamic graph re-compilations. Needs a "Zero-Masking" approach instead.
+
 ---
 
 ## Pillar 4: Memory-Centric (KV Cache & Attention)
+
+### 4.2 Tableless Hash Embeddings (`4_2_tableless_hash_embeds`)
+- **Status:** Baseline Prototyped.
+- **Findings:** Replaced a 131MB embedding table (`32000x4096`) with a 16MB hashed table (`4096x4096`), achieving an 8x memory reduction.
+- **The Bottleneck:** Deterministic hashing creates exact collisions. Multiple unique vocabulary tokens map to the identical vector, destroying semantic precision for rare words. Needs a Multi-Hashing concatenation strategy.
 
 ### 4.3 TurboQuant & A4 Fusion (`4_3_kv_cache_turboquant`)
 - **Status:** Evaluated and Resolved the "Softmax Cliff".
@@ -61,6 +71,15 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Status:** Evaluated and Bottleneck Identified.
 - **Findings:** QLoRA successfully compresses trainable parameters to `< 0.4%` of the base LLM. However, it cannot be run on mobile/edge devices for 4K+ contexts.
 - **The Bottleneck:** The Forward Activation Memory Wall. PyTorch must store the full intermediate activation tensor $X$ for every token in the 4K sequence to compute gradients for the $A$ and $B$ LoRA matrices. This consumes >16GB of SRAM, forcing catastrophic OS SSD swapping.
+
+---
+
+## Pillar 6: Diffusion Transformers (DiT)
+
+### 6.1 Step Distillation & LCM (`6_1_step_distillation_lcm`)
+- **Status:** Baseline Prototyped.
+- **Findings:** Simulated a 50-step ODE Diffusion solver vs a 4-step Latent Consistency Model (LCM). Proved a `>90%` latency reduction.
+- **The Bottleneck:** LCM enforces smooth trajectories, inherently destroying high-frequency noise sampling and causing outputs to appear blurry and lack micro-details. Needs a phased DDIM-injection strategy.
 
 ---
 
