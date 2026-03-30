@@ -4,14 +4,34 @@ This repository functions as a fully automated AI Scientist laboratory. It conta
 
 ## 🎯 Core Research Directives
 
-The `auto_researcher` engine driving this repository is explicitly focused on pushing the frontier of Artificial Intelligence hardware execution. It operates under two primary research pillars:
+The `auto_researcher` engine driving this repository is explicitly focused on pushing the frontier of Artificial Intelligence hardware execution. It operates under six primary research pillars, specifically targeting Edge AI (e.g., Apple Silicon M5/M6) and custom NPU deployments:
 
-1. **Algorithm & Model Architecture Optimization (The Software Co-Design)**
-   - Exploring sub-4-bit quantization (e.g., W4A4, W2A2), extreme KV Cache compression (TurboQuant), and Mixture-of-Expert (MoE) routing enhancements.
-   - Prototyping novel Attention and Feed-Forward Network (FFN) architectures for Large Language Models (LLMs) and Image/Video Transformers.
-2. **Hardware Architecture PPA Improvements (The Physical Silicon)**
-   - Simulating and proposing physical hardware architectural improvements to maximize **PPA** (Power, Performance, Area).
-   - Targeting Edge/Mobile NPU memory hierarchies, SSD-to-SRAM I/O bottlenecks, and Tensor Core utilization.
+### 1. Model Architecture for LLM, ViT, and DiT
+*   **1.1 Next Gen Attention/FFN:** Optimizing the Multi-Head Latent Attention (MLA) bandwidth wall.
+*   **1.2 Attention-SSM Hybrids:** Designing hardware for Mamba/Jamba, handling associative scans and hardware-aware selective state updates (moving away from standard GEMM).
+*   **1.3 Linear Attention & Sliding Windows:** Breaking the $O(N^2)$ complexity barrier with FlashAttention-3 or sliding window mechanisms for on-device KV caches.
+
+### 2. Quantization Algorithms
+*   **2.1 Outlier-Aware Quantization:** Solving the W4A4 activation outlier collapse using SmoothQuant, AWQ, or FlatQuant channel-wise affine transformations.
+*   **2.2 Sub-2-bit / Binary-Ternary Kernels:** Prototyping BitNet (1-bit LLMs) and LowRA for ultra-low power execution, replacing heavy MAC units with simple additions/XORs.
+
+### 3. Advanced Sparsity & Dynamic Execution
+*   **3.1 Token Pruning & Importance Sampling:** Dynamically dropping unimportant tokens (e.g., background patches in a ViT) mid-inference to save up to 50% energy.
+*   **3.2 Early-Exit Architectures:** Supporting shallow exits for simple inputs by training models with internal confidence classifiers.
+*   **3.3 Flexible N:M Sparsity:** Moving beyond rigid 2:4 sparsity to N:M patterns dynamically tuned to the device's thermal envelope.
+
+### 4. Embedding & Memory-Centric Optimizations
+*   **4.1 Vector Compression (PQ):** Using hardware-accelerated lookups for compressed Product Quantization codebooks instead of raw embeddings.
+*   **4.2 Table-less Embeddings:** Researching Hash-based or Compositional Embeddings (QR-embeddings) to reduce massive lookup table footprints.
+*   **4.3 KV Cache Compression:** Implementing 3-bit/4-bit compression (e.g., TurboQuant) using Chained Householder Reflections to eliminate Prefill latency.
+
+### 5. On-Device Adaptivity (On-chip Learning)
+*   **5.1 PEFT Hardware:** Enabling LoRA updates directly on the NPU without invoking the power-hungry CPU.
+*   **5.2 Gradient Compression:** Optimizing asynchronous local updates and quantized gradients for privacy-preserving Federated Learning swarms.
+
+### 6. Diffusion Transformer (DiT) Acceleration
+*   **6.1 Step-Distillation Support:** Optimizing hardware for high-frequency, low-latency iterations required by Latent Consistency Models (LCMs) to generate video in 1-4 steps.
+*   **6.2 Adaptive Global-Local Attention:** Designing three-stage DiT architectures where high-resolution stages use sparse local attention and bottleneck stages use global attention.
 
 ---
 
@@ -54,3 +74,6 @@ Based on empirical testing of extreme quantization techniques on Attention and F
 ### 5. Edge Agentic Browsing Benchmarks (`/chrome_mcp_agent`)
 *   Measuring LLM performance (TPS and Latency) for autonomous web browsing using OpenClaw's Chrome MCP.
 *   Benchmarked Llama 3.2 3B, Qwen 2.5 7B, DeepSeek-Coder-V2 16B against Gemini 2.5 Flash, identifying the $O(N^2)$ prefill bottleneck when passing raw 32K+ token DOM snapshots to local models.
+
+---
+*Auto-managed by OpenClaw Assistant. Every theoretical proposal added to this blueprint MUST be backed by an empirical PyTorch/Triton prototype executing on this repository.*
