@@ -24,15 +24,13 @@ class AttentionQuantizerHook:
             return output
             
         original_dtype = output.dtype
-        x = output.float() # Compute in float32 for simulation
+        x = output.float()
         
         if self.mode == "naive_a4":
             out = quantize_4bit_symmetric(x)
             return out.to(original_dtype)
             
         elif self.mode == "turboquant":
-            # Simulate TurboQuant math precision:
-            # Rotate -> Quantize -> Unrotate (so the rest of Qwen's math like RoPE works)
             rotated = torch.matmul(x, self.R)
             q4 = quantize_4bit_symmetric(rotated)
             out = torch.matmul(q4, self.R.T)
@@ -42,7 +40,6 @@ class AttentionQuantizerHook:
             rotated = torch.matmul(x, self.R)
             q4 = quantize_4bit_symmetric(rotated)
             
-            # 1-bit residual (QJL)
             err = rotated - q4
             sign_1bit = torch.sign(err)
             sign_1bit[sign_1bit == 0] = 1.0
@@ -61,11 +58,19 @@ def run_evaluation():
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16).to(device)
     
-    prompt = "Explain the theory of relativity in two short sentences."
-    inputs = tokenizer(f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n", return_tensors="pt").to(device)
+    prompts = [
+        "What is the capital of France?",
+        "Write a python function to compute the Fibonacci sequence.",
+        "Translate 'Hello, how are you?' into French.",
+        "Summarize the plot of Romeo and Juliet in one sentence.",
+        "Why is the sky blue?",
+        "What is 15 multiplied by 4?",
+        "Name three primary colors.",
+        "Write a short haiku about a robot.",
+        "Explain quantum computing to a 5-year-old in one sentence.",
+        "List two benefits of regular exercise."
+    ]
     
-    # Identify projection dimensions for Qwen 0.5B
-    # Qwen uses GQA, so q_proj has different dim than k_proj/v_proj.
     q_dim = model.config.hidden_size
     kv_dim = model.config.hidden_size // (model.config.num_attention_heads // model.config.num_key_value_heads)
     
@@ -74,28 +79,32 @@ def run_evaluation():
     
     modes = ["fp16", "naive_a4", "turboquant", "turboquant_qjl"]
     
-    for mode in modes:
+    print("\nStarting 10-prompt Quality Evaluation Suite...\n")
+    
+    for i, prompt in enumerate(prompts):
         print(f"\n======================================")
-        print(f"🚀 GENERATING WITH MODE: {mode.upper()}")
+        print(f"Test {i+1}/10: {prompt}")
         print(f"======================================")
         
-        # Register hooks dynamically
-        handles = []
-        for layer in model.model.layers:
-            handles.append(layer.self_attn.q_proj.register_forward_hook(AttentionQuantizerHook(mode, R_q)))
-            handles.append(layer.self_attn.k_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv)))
-            handles.append(layer.self_attn.v_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv)))
+        inputs = tokenizer(f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n", return_tensors="pt").to(device)
+        
+        for mode in modes:
+            handles = []
+            for layer in model.model.layers:
+                handles.append(layer.self_attn.q_proj.register_forward_hook(AttentionQuantizerHook(mode, R_q)))
+                handles.append(layer.self_attn.k_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv)))
+                handles.append(layer.self_attn.v_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv)))
+                
+            torch.manual_seed(42)
+            outputs = model.generate(**inputs, max_new_tokens=25, temperature=0.1, do_sample=True, pad_token_id=tokenizer.eos_token_id)
+            text = tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
             
-        # Generate text
-        torch.manual_seed(42)
-        outputs = model.generate(**inputs, max_new_tokens=40, temperature=0.1, do_sample=True, pad_token_id=tokenizer.eos_token_id)
-        text = tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
-        
-        print(f"\n[OUTPUT]:\n{text}\n")
-        
-        # Clean up hooks
-        for h in handles:
-            h.remove()
+            # Format text to replace newlines with spaces for clean printing
+            text = text.replace('\n', ' ')
+            print(f"[{mode.upper():<14}] {text}")
+            
+            for h in handles:
+                h.remove()
 
 if __name__ == "__main__":
     run_evaluation()
