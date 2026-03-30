@@ -33,6 +33,11 @@ The `auto_researcher` engine driving this repository is explicitly focused on pu
 *   **6.1 Step-Distillation Support:** Optimizing hardware for high-frequency, low-latency iterations required by Latent Consistency Models (LCMs) to generate video in 1-4 steps.
 *   **6.2 Adaptive Global-Local Attention:** Designing three-stage DiT architectures where high-resolution stages use sparse local attention and bottleneck stages use global attention.
 
+### 7. Next-Generation Paradigms (TTC, RetNet, MoD)
+*   **7.1 Test-Time Compute (TTC):** Scaling compute at inference instead of model size (e.g., OpenAI o1 / DeepSeek-R1). Designing hardware pipelines that support variable-length, branching verification paths without destroying cache locality.
+*   **7.2 Retentive Networks (RetNet):** Prototyping successors to Transformers that offer $O(1)$ constant-time inference via an explicit "Decay" matrix, benchmarking Apple Silicon's handling of decay mechanisms vs standard GEMMs.
+*   **7.3 Mixture-of-Depths (MoD):** Routing tokens through *time* rather than experts. Dynamically enforcing a strict FLOP budget by dropping tokens out of the computational graph via dense-sparse-dense memory bridges.
+
 ---
 
 ## 🏆 The Lab's Official Architectural Blueprint for Edge AI (2025/2026)

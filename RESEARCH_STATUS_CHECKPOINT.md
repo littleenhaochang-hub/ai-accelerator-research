@@ -104,7 +104,8 @@ This document serves as the master state-tracker for the AI Accelerator Research
 ---
 
 ## Global Next Steps for Auto-Researcher
-1. **Pillar 2.2 (Ternary):** Design an algorithm that absorbs FP16 scale factors into the activation function (SiLU/GeLU) so the accumulator doesn't stall.
-2. **Pillar 3.1 (Routing):** Explore "Zero-Out" dense routing (setting the token vector to exactly 0.0) to short-circuit the ALU without breaking dense memory contiguous blocks.
-3. **Pillar 5.1 (Edge Training):** Explore Activation-Free Fine-Tuning methods (e.g., zeroth-order optimization or forward-gradient algorithms) to train LoRA without storing the full intermediate computation graph.
-4. **Pillar 1.2 (SSM):** Lowering the block-parallel Mamba logic into actual Apple Metal shaders.
+1. **Pillar 7 (Next-Gen Paradigms):** Build initial baselines for Test-Time Compute (DeepSeek-R1 style branching), RetNet (decay matrix vs GEMM on Apple Silicon), and Mixture-of-Depths (sparse-dense token routing).
+2. **Pillar 2.2 (Ternary):** Design an algorithm that absorbs FP16 scale factors into the activation function (SiLU/GeLU) so the accumulator doesn't stall.
+3. **Pillar 3.1 (Routing):** Explore "Zero-Out" dense routing (setting the token vector to exactly 0.0) to short-circuit the ALU without breaking dense memory contiguous blocks.
+4. **Pillar 5.1 (Edge Training):** Explore Activation-Free Fine-Tuning methods (e.g., zeroth-order optimization or forward-gradient algorithms) to train LoRA without storing the full intermediate computation graph.
+5. **Pillar 1.2 (SSM):** Lowering the block-parallel Mamba logic into actual Apple Metal shaders.
