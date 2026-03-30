@@ -1,12 +1,10 @@
 import torch
+import torch.nn.functional as F
 
 def quantize_4bit_symmetric(x):
     """Simulates 4-bit symmetric quantization per-token (dim=-1)."""
-    # Find max absolute value per token
     scale = x.abs().max(dim=-1, keepdim=True).values / 7.0
     scale = torch.clamp(scale, min=1e-5)
-    
-    # Quantize to [-8, 7] and dequantize
     x_q = torch.round(x / scale).clamp(-8, 7)
     return x_q * scale
 
@@ -22,52 +20,67 @@ def run_experiment():
     torch.manual_seed(42)
     batch_size, seq_len, d_model = 1, 256, 128
     
-    print(f"Initializing Fusion Experiment (Seq: {seq_len}, Dim: {d_model})")
+    print(f"Initializing Full Attention Fusion Experiment (Seq: {seq_len}, Dim: {d_model})")
     
-    # 1. Generate Q and K with extreme outliers to simulate real LLM activations
+    # 1. Generate Q, K, V with extreme outliers
     Q = torch.randn(batch_size, seq_len, d_model)
     K = torch.randn(batch_size, seq_len, d_model)
-    # Inject massive outliers in specific feature channels
-    Q[..., 10] *= 15.0
-    K[..., 10] *= 15.0
-    Q[..., 42] *= 10.0
-    K[..., 42] *= 10.0
+    V = torch.randn(batch_size, seq_len, d_model)
+    
+    # Inject massive outliers
+    Q[..., 10] *= 15.0; K[..., 10] *= 15.0; V[..., 10] *= 15.0
+    Q[..., 42] *= 10.0; K[..., 42] *= 10.0; V[..., 42] *= 10.0
 
-    # 2. Generate random orthogonal rotation matrix R (TurboQuant / Householder equivalent)
+    # 2. Random orthogonal rotation matrix R
     R, _ = torch.linalg.qr(torch.randn(d_model, d_model))
     
-    # --- Baseline: FP32 Exact Attention Scores ---
+    # --- Baseline: FP32 Exact Attention ---
     S_exact = torch.matmul(Q, K.transpose(-1, -2)) / (d_model ** 0.5)
+    P_exact = F.softmax(S_exact, dim=-1)
+    O_exact = torch.matmul(P_exact, V)
 
-    # --- Experiment A: A4 Only (No Rotation, FP32 K) ---
-    # Fails hard due to outliers
+    # --- Experiment A: Naive A4 (No Rotation, FP32 KV) ---
     Q_a4 = quantize_4bit_symmetric(Q)
-    S_a4_only = torch.matmul(Q_a4, K.transpose(-1, -2)) / (d_model ** 0.5)
+    S_a4 = torch.matmul(Q_a4, K.transpose(-1, -2)) / (d_model ** 0.5)
+    P_a4 = F.softmax(S_a4, dim=-1)
+    O_a4 = torch.matmul(P_a4, V)
 
-    # --- Experiment B: TurboQuant K Only (Rotated K4, FP32 Q) ---
+    # --- Experiment B: TurboQuant KV Only (Rotated K4/V4, FP32 Q) ---
     Q_rot = torch.matmul(Q, R.transpose(-1, -2))
     K_rot = torch.matmul(K, R.transpose(-1, -2))
+    V_rot = torch.matmul(V, R.transpose(-1, -2))
     
     K_rot_q4 = quantize_4bit_symmetric(K_rot)
-    S_tq_only = torch.matmul(Q_rot, K_rot_q4.transpose(-1, -2)) / (d_model ** 0.5)
+    V_rot_q4 = quantize_4bit_symmetric(V_rot)
+    
+    S_tq = torch.matmul(Q_rot, K_rot_q4.transpose(-1, -2)) / (d_model ** 0.5)
+    P_tq = F.softmax(S_tq, dim=-1)
+    O_tq_rot = torch.matmul(P_tq, V_rot_q4)
+    # Inverse rotation: O = O_rot * R
+    O_tq = torch.matmul(O_tq_rot, R)
 
-    # --- Experiment C: Fused A4 + TurboQuant K ---
-    # Quantize rotated Q
+    # --- Experiment C: Fused A4 + TurboQuant KV ---
     Q_rot_q4 = quantize_4bit_symmetric(Q_rot)
     S_fused = torch.matmul(Q_rot_q4, K_rot_q4.transpose(-1, -2)) / (d_model ** 0.5)
+    P_fused = F.softmax(S_fused, dim=-1)
+    O_fused_rot = torch.matmul(P_fused, V_rot_q4)
+    O_fused = torch.matmul(O_fused_rot, R)
 
-    print("\n--- Attention Logit SNR (Signal-to-Noise Ratio) ---")
-    print(f"1. A4 Only (Naive, No Rotation) : {calculate_snr(S_exact, S_a4_only):.2f} dB")
-    print(f"2. TurboQuant K Only (FP32 Q)   : {calculate_snr(S_exact, S_tq_only):.2f} dB")
-    print(f"3. Fused A4 + TurboQuant K4     : {calculate_snr(S_exact, S_fused):.2f} dB")
+    print("\n--- Phase 1: Attention Logit SNR (Before Softmax) ---")
+    print(f"1. Naive A4 Only            : {calculate_snr(S_exact, S_a4):.2f} dB")
+    print(f"2. TurboQuant KV Only       : {calculate_snr(S_exact, S_tq):.2f} dB")
+    print(f"3. Fused A4 + TurboQuant KV : {calculate_snr(S_exact, S_fused):.2f} dB")
     
-    print("\n--- Variance Compounding Analysis ---")
-    print("Notice two critical dynamics:")
-    print("A. The Positive Synergy: Fused A4 + TQ is massively better than Naive A4.")
-    print("   The rotation matrix smeared the LLM outliers, rescuing Q's 4-bit precision.")
-    print("B. The Negative Synergy: Fused A4 + TQ drops ~3dB compared to TQ alone.")
-    print("   Because both Q and K are now noisy, the quantization errors compound")
-    print("   during the dot product (variance of product = product of variances).")
+    print("\n--- Phase 2: Final Output SNR (After Softmax & V Projection) ---")
+    print(f"1. Naive A4 Only            : {calculate_snr(O_exact, O_a4):.2f} dB")
+    print(f"2. TurboQuant KV Only       : {calculate_snr(O_exact, O_tq):.2f} dB")
+    print(f"3. Fused A4 + TurboQuant KV : {calculate_snr(O_exact, O_fused):.2f} dB")
+
+    print("\n--- Observations ---")
+    print("Notice the severe drop in dB between Phase 1 and Phase 2.")
+    print("The Softmax function acts as a non-linear error amplifier. Because it is an exponential")
+    print("function, errors in the logits shift the probability mass heavily. A small logit error")
+    print("can cause the attention head to 'look' at the wrong token entirely, carrying the wrong V.")
 
 if __name__ == "__main__":
     run_experiment()
