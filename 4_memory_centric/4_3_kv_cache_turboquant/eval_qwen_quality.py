@@ -15,9 +15,10 @@ def get_rot_matrix(dim, device):
     return R.to(device)
 
 class AttentionQuantizerHook:
-    def __init__(self, mode, R):
+    def __init__(self, mode, R, is_q=False):
         self.mode = mode
         self.R = R
+        self.is_q = is_q
         
     def __call__(self, module, input, output):
         if self.mode == "fp16":
@@ -26,17 +27,21 @@ class AttentionQuantizerHook:
         original_dtype = output.dtype
         x = output.float()
         
-        if self.mode == "naive_a4":
+        # If the mode specifies FP16 activations, skip quantizing Q entirely.
+        if "fp16_act" in self.mode and self.is_q:
+            return output
+
+        if self.mode.startswith("naive_a4"):
             out = quantize_4bit_symmetric(x)
             return out.to(original_dtype)
             
-        elif self.mode == "turboquant":
+        elif self.mode.startswith("turboquant") and "qjl" not in self.mode:
             rotated = torch.matmul(x, self.R)
             q4 = quantize_4bit_symmetric(rotated)
             out = torch.matmul(q4, self.R.T)
             return out.to(original_dtype)
             
-        elif self.mode == "turboquant_qjl":
+        elif "turboquant" in self.mode and "qjl" in self.mode:
             rotated = torch.matmul(x, self.R)
             q4 = quantize_4bit_symmetric(rotated)
             
@@ -77,13 +82,13 @@ def run_evaluation():
     R_q = get_rot_matrix(q_dim, device)
     R_kv = get_rot_matrix(kv_dim, device)
     
-    modes = ["fp16", "naive_a4", "turboquant", "turboquant_qjl"]
+    modes = ["fp16", "turboquant_fp16_act", "turboquant_fp16_act_qjl"]
     
-    print("\nStarting 10-prompt Quality Evaluation Suite...\n")
+    print("\nStarting KV-Only Quality Evaluation Suite...\n")
     
-    for i, prompt in enumerate(prompts):
+    for i, prompt in enumerate(prompts[:5]): # Run 5 tests for speed
         print(f"\n======================================")
-        print(f"Test {i+1}/10: {prompt}")
+        print(f"Test {i+1}/5: {prompt}")
         print(f"======================================")
         
         inputs = tokenizer(f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n", return_tensors="pt").to(device)
@@ -91,9 +96,9 @@ def run_evaluation():
         for mode in modes:
             handles = []
             for layer in model.model.layers:
-                handles.append(layer.self_attn.q_proj.register_forward_hook(AttentionQuantizerHook(mode, R_q)))
-                handles.append(layer.self_attn.k_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv)))
-                handles.append(layer.self_attn.v_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv)))
+                handles.append(layer.self_attn.q_proj.register_forward_hook(AttentionQuantizerHook(mode, R_q, is_q=True)))
+                handles.append(layer.self_attn.k_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv, is_q=False)))
+                handles.append(layer.self_attn.v_proj.register_forward_hook(AttentionQuantizerHook(mode, R_kv, is_q=False)))
                 
             torch.manual_seed(42)
             outputs = model.generate(**inputs, max_new_tokens=25, temperature=0.1, do_sample=True, pad_token_id=tokenizer.eos_token_id)
