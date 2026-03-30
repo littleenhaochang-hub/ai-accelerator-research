@@ -2,6 +2,23 @@
   "attempted_ideas": [
     "Walsh-Hadamard Transform for PolarQuant",
     "Randomized Butterfly Transform for PolarQuant",
-    "Chained Householder Reflections for Efficient PolarQuant"
-  ]
+    "Chained Householder Reflections for Efficient PolarQuant",
+    "Fused A4 + TurboQuant KV (Variance Compounding Analysis)",
+    "1-Bit QJL Residual Correction for Softmax Cliff Recovery"
+  ],
+  "results": {
+    "Fused A4 + TurboQuant KV": {
+      "pre_softmax_snr_db": 31.69,
+      "post_softmax_snr_db": 12.19,
+      "qwen_0_5B_pass_rate": "0%",
+      "conclusion": "Rotation mitigates outlier collapse but cross-term variance e_q * e_k gets amplified by Softmax causing total generation failure."
+    },
+    "1-Bit QJL Residual Correction": {
+      "pre_softmax_snr_db": 33.83,
+      "post_softmax_snr_db": 16.37,
+      "qwen_0_5B_pass_rate_a4_kv4": "40%",
+      "qwen_0_5B_pass_rate_fp16_kv4": "60%",
+      "conclusion": "1-bit (+1/-1) popcount residual successfully rescues attention distribution. Mandatory for Edge deployment."
+    }
+  }
 }
