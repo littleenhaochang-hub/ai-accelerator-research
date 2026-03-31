@@ -32,7 +32,14 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Methodology:** We established the **Two-Way Validation Principle**: all algorithms must pass both Math SNR (Gate A) and Live LLM Generation (Gate B).
 - **Findings:** Tested Percentile Clipping, Block/Group Quant (G=32), and Sparse-Dense Hybrids against the Qwen 0.5B model.
 - **Verdict:** While the Sparse-Dense hybrid scored an incredible 41.23 dB in raw mathematical SNR, it catastrophically failed the live text generation test (broken grammar/hallucinations). Extracting outliers into sparse matrices breaks the model's structural timing (e.g., RoPE).
-- **Architectural Decision:** Dense rotation (TurboQuant) combined with a 1-Bit QJL residual is the officially verified, superior path for Edge AI A4A4 quantization.
+- **Architectural Decision:** Dense rotation (TurboQuant) combined with a 1-Bit QJL residual is the officially verified, superior path for Edge AI A4KV4 Attention.
+
+### 2.4 TurboQuant & Sub-4-Bit Architecture (`2_4_turboquant` & `2_5_attention_ablation`)
+- **Status:** Evaluated, Mathematically Formalized, and Verified via Live Qwen 0.5B.
+- **Findings:** A strict ablation study revealed that compressing both Queries and KV cache to 4-bit (A4KV4) causes a 2 dB "Compounding Penalty" ($e_q \cdot e_k$) that triggers the Softmax Cliff, completely destroying generative coherence.
+- **The Fix for Attention:** Only **TurboQuant (Orthogonal Rotation) + 1-Bit QJL Residual** survived the A4KV4 Softmax cliff, recovering from a 0% to 40-60% task pass rate by smearing outliers and applying popcount residual fixes. Sub-channel quantization failed due to Softmax scaling errors.
+- **The Fix for FFNs:** In FFN layers (post-SiLU), TurboQuant struggles due to asymmetric structural outliers. However, **Sub-Channel E8M0** perfectly isolates FFN outliers (achieving 18.35 dB SNR) while eliminating floating-point multipliers (Multiplier-Free) with zero memory-bandwidth tax.
+- **Architectural Decision:** Edge NPUs must use TurboQuant+QJL for Attention, and Sub-Channel E8M0 for FFNs.
 
 ---
 
@@ -66,12 +73,6 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Status:** Baseline Prototyped.
 - **Findings:** Replaced a 131MB embedding table (`32000x4096`) with a 16MB hashed table (`4096x4096`), achieving an 8x memory reduction.
 - **The Bottleneck:** Deterministic hashing creates exact collisions. Multiple unique vocabulary tokens map to the identical vector, destroying semantic precision for rare words. Needs a Multi-Hashing concatenation strategy.
-
-### 4.3 TurboQuant & A4 Fusion (`4_3_kv_cache_turboquant`)
-- **Status:** Evaluated and Resolved the "Softmax Cliff".
-- **Findings:** Fusing 4-bit activations (A4) with 4-bit rotated KV Cache (TurboQuant) causes quantization variance to compound ($e_q \cdot e_k$). The Softmax function exponentially amplifies this noise, destroying the Signal-to-Noise Ratio (SNR) and causing a 0% pass rate in live text generation.
-- **The Fix (1-Bit QJL):** We implemented a 1-bit residual correction (+1/-1 sign of the compression error). Adding this to the hardware MAC via Popcount recovers +4.18 dB of SNR.
-- **Live Validation:** Monkey-patched a live `Qwen2.5-0.5B-Instruct` model. While standard A4A4 collapsed into silence or gibberish, the 5-bit QJL pipeline successfully recovered semantic English generation (40-60% task pass rate).
 
 ---
 
