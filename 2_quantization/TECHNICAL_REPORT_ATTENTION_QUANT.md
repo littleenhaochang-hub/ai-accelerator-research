@@ -96,18 +96,37 @@ We injected massive LLM-style outliers into a 256x128 Attention block and ran a 
 
 ---
 
-## 5. Appendix: 10-Prompt Generative Suite (Stage 2: A4KV4)
+## 5. Appendix: 10-Prompt Generative Suite 
 
-Below is the raw textual output from the live `Qwen2.5-0.5B-Instruct` model under full 4-bit (A4KV4) quantization. This vividly demonstrates the semantic collapse in Sub-Channel quantization and the recovery enabled by the 1-bit QJL residual.
+Below is the raw textual output from the live `Qwen2.5-0.5B-Instruct` model under both stages of quantization. This vividly demonstrates the semantic collapse in Sub-Channel quantization and the recovery enabled by the 1-bit QJL residual.
+
+### Appendix A: Stage 1 (KV4 Only, Query is FP32)
+*Isolates KV cache quantization error.*
+
+| Task | Prompt | FP16 (Baseline) | Sub-Channel (FP16, G=32) | TurboQuant + 1-Bit QJL |
+| :--- | :--- | :--- | :--- | :--- |
+| **Factual** | What is the capital of France? | "The capital of France is Paris." | "The capital of France is Paris. The capital of France is Paris, which..." *(Repetitive)* | "The capital city of France is Paris." *(Pass)* |
+| **Coding** | Write a python function to compute the Fibonacci sequence. | "Certainly! The Fibonacci sequence is a series of numbers..." | "\`\`\` is a Python function that takes the Fibonacci sequence up to n using recursion:  def: def(n" *(Syntax failure)* | "Certainly! Below is a Python function that computes the Fibonacci sequence up to the nth term:  \`\`\`python" *(Pass)* |
+| **Translation** | Translate 'Hello, how are you?' into French. | "Bonjour, comment ça va ?" | "Bonjour: Hello, how are you?" *(Failed translation)* | "Hello, how are you?" *(Failed translation)* |
+| **Summarization**| Summarize the plot of Romeo and Juliet in one sentence. | "Romeo and Juliet are two young lovers who fall in love with each other but are forbidden..." | "Certainly The plot summary for Romeo and Juliet is a romantic comedy film about two characters..." *(Factually wrong)* | "Rome Romeo and Juliet are a tragic love story that revolves around their tragic love affair, with tragic" *(Pass, slightly repetitive)* |
+| **Reasoning** | Why is the sky blue? | "The sky appears blue because it reflects sunlight. When sunlight enters our eyes..." | "The sky appears blue because of the sun." *(Pass/Simplistic)* | "The sky is not blue because it's made of water." *(Fail/Hallucination)* |
+| **Math** | What is 15 multiplied by 4? | "To find the product of 15 and 4, you simply multiply them together: \[ ..." | "what is 1+4  The answer is: 20  What is 1*" *(Fail/Hallucination)* | "To solve the problem of multiplying 15 by 4, you simply need to multiply them together" *(Pass/Coherent)* |
+| **Factual** | Name three primary colors. | "Three primary colors are red, blue, and yellow." | "The color of the assistant is red." *(Fail)* | "The three primary colors are often used in design and branding to create a cohesive visual identity or brand color" *(Pass/Contextual)* |
+| **Poetry** | Write a short haiku about a robot. | "Silent eyes watch, Robots move with grace, Code speaks, thoughts unfold." | "I'm  Assistant  Assistant  Assistant  Assistant..." *(Garbage)* | "Robot在灯下舞动，无声， 静默。" *(Pass, outputted Chinese poetry appropriately)* |
+| **ELI5** | Explain quantum computing to a 5-year-old in one sentence. | "Quantum computers use tiny bits called qubits that can be both 0 and 1..." | "Sure" *(Cut off)* | "Quantum is a fun way to explain it in one sentence for a 5 year old child:" *(Fail/Evasion)* |
+| **Logic** | List two benefits of regular exercise. | "Regular exercise has several significant benefits, including: 1. Improved Physical Health..." | "Sureuser  Sure, here are some benefits of regular exercise:  1." *(Cut off)* | "Regular exercise can offer several benefits, including:  1. **Improved cardiovascular health:** Regular physical activity helps" *(Pass)* |
+
+### Appendix B: Stage 2 (A4 KV4 Full Quantization)
+*True Edge NPU scenario. $Q, K, V$ are all 4-bit, introducing cross-term variance ($e_q \cdot e_k$).*
 
 | Task | Prompt | FP16 (Baseline) | Sub-Channel (FP16, G=32) | TurboQuant + 1-Bit QJL |
 | :--- | :--- | :--- | :--- | :--- |
 | **Factual** | What is the capital of France? | "The capital of France is Paris." | "The capital of France was Paris, which had been founded in 1657890" *(Hallucination)* | "The capital of for France is Paris." *(Pass)* |
-| **Coding** | Write a python function to compute the Fibonacci sequence. | "Certainly! The Fibonacci sequence is a series of numbers where each number is the sum..." | "Sure def Sure def 是 Python 的一个函数，用于计算斐波序列的前" *(Syntax failure)* | "Certainly! Below is a Python function that computes the Fibonacci sequence up to n: ```python def" *(Pass)* |
+| **Coding** | Write a python function to compute the Fibonacci sequence. | "Certainly! The Fibonacci sequence is a series of numbers..." | "Sure def Sure def 是 Python 的一个函数，用于计算斐波序列的前" *(Syntax failure)* | "Certainly! Below is a Python function that computes the Fibonacci sequence up to n: \`\`\`python def" *(Pass)* |
 | **Translation** | Translate 'Hello, how are you?' into French. | "Bonjour, comment ça va ?" | ""Hello, how are you?" in French is "Bonjour: Bonjour, comment, comment que" *(Repetitive)* | (Blank/Fail) |
-| **Summarization**| Summarize the plot of Romeo and Juliet in one sentence. | "Romeo and Juliet are two young lovers who fall in love with each other but are forbidden..." | "The story of Romeo and Juliet is a romantic comedy, with Shakespeare as the playwright..." *(Coherent but factually wrong genre)* | "Rome: "I amazes me with my love, your heart's true, Juliet you're" *(Borderline Coherent)* |
+| **Summarization**| Summarize the plot of Romeo and Juliet in one sentence. | "Romeo and Juliet are two young lovers who fall in love with each other but are forbidden..." | "The story of Romeo and Juliet is a romantic comedy, with Shakespeare as the playwright..." *(Factually wrong)* | "Rome: "I amazes me with my love, your heart's true, Juliet you're" *(Borderline)* |
 | **Reasoning** | Why is the sky blue? | "The sky appears blue because it reflects sunlight. When sunlight enters our eyes..." | "为什么天空是蓝色的吗？" *(Language breakdown)* | "The sky refers to the color of the sun." *(Fail)* |
-| **Math** | What is 15 multiplied by 4? | "To find the product of 15 and 4, you simply multiply them together: \[ 15 \times..." | "The answer is: 15 multiplied by 4 equals 请问是1个乘以的" *(Language breakdown)* | "To solve this, I'll need to do some calculations. Let's start: 1 x 4" *(Coherent start/Pass)* |
+| **Math** | What is 15 multiplied by 4? | "To find the product of 15 and 4, you simply multiply them together: \[ ..." | "The answer is: 15 multiplied by 4 equals 请问是1个乘以的" *(Language breakdown)* | "To solve this, I'll need to do some calculations. Let's start: 1 x 4" *(Pass/Coherent)* |
 | **Factual** | Name three primary colors. | "Three primary colors are red, blue, and yellow." | "The color code for the color "three" is "300000000" *(Hallucination)* | "Three three primary colors are a set of three primary colors, secondary, and, third..." *(Fail/Repetitive)* |
 | **Poetry** | Write a short haiku about a robot. | "Silent eyes watch, Robots move with grace, Code speaks, thoughts unfold." | "--- الa --- a --- a --- a --- a --- a ---" *(Garbage)* | "A robot is a machine, Silent and silent, But it has feelings, too." *(Pass)* |
 | **ELI5** | Explain quantum computing to a 5-year-old in one sentence. | "Quantum computers use tiny bits called qubits that can be both 0 and 1..." | "To 陈述 to a 5-year-old in one sentence." *(Fail)* | "Quantum computing to a 5-year old in one sentence." *(Fail/Repeats prompt)* |
