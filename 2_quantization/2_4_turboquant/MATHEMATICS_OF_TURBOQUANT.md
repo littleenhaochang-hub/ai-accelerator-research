@@ -37,6 +37,18 @@ $$ \text{Max}(|X_{rot}|) \ll \text{Max}(|X|) $$
 
 In our Python execution, multiplying by $R$ instantly dropped the maximum absolute value from `25.00` down to `13.39`, effectively turning the vector into a smooth Gaussian distribution where 4-bit uniform quantization is highly accurate.
 
+**How to Generate the Rotation Matrix $R$:**
+Historically, generating a dense orthogonal matrix $R$ relies on sampling a random matrix $M \sim \mathcal{N}(0,1)$ and applying QR decomposition ($M = Q R_{qr}$, where $Q$ is orthogonal). However, multiplying by a dense $D \times D$ matrix requires $O(D^2)$ FLOPs, which severely bottlenecks the Prefill phase.
+
+Instead, we use **Chained Householder Reflections** to construct $R$ without materializing a dense matrix. A Householder reflection is defined by a normal vector $v$:
+$$ H = I - 2 \frac{v v^T}{\|v\|^2} $$
+Multiplying an activation vector $x$ by $H$ reflects $x$ across the hyperplane orthogonal to $v$. This operation requires only an $O(D)$ dot product: 
+$$ Hx = x - 2 \frac{v^T x}{\|v\|^2} v $$
+
+By chaining $k$ such reflections (where $k \ll D$), we implicitly define $R$:
+$$ R = H_1 H_2 \dots H_k $$
+This reduces the mathematical complexity of rotation from $O(D^2)$ to $O(k \cdot D)$, entirely eliminating the Prefill ALU bottleneck while achieving the exact same outlier-smearing effect as a dense random rotation.
+
 ---
 
 ## 3. Attention Symmetry (The Mathematical Invariance)
