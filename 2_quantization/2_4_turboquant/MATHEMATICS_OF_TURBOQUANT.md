@@ -50,10 +50,20 @@ $$ R = H_1 H_2 \dots H_k $$
 This reduces the mathematical complexity of rotation from $O(D^2)$ to $O(k \cdot D)$, entirely eliminating the Prefill ALU bottleneck while achieving the exact same outlier-smearing effect as a dense random rotation.
 
 **Complexity Breakdown & Real-World Example:**
-Let's look at the computational cost for a standard LLM hidden dimension of $D = 4096$:
+
+To mathematically derive the operations required for both approaches:
+
+*   **Dense Matrix $O(D^2)$:** Let $R \in \mathbb{R}^{D \times D}$ be the dense orthogonal rotation matrix, and $x \in \mathbb{R}^{D \times 1}$ be the activation vector for a single token. The matrix-vector multiplication $y = Rx$ requires calculating $y_i = \sum_{j=1}^{D} R_{ij} x_j$ for each of the $D$ elements in $y$. Each sum requires $D$ multiplications and $(D-1)$ additions. The total operational count is $D \times (2D - 1) \approx 2D^2$ Floating Point Operations (FLOPs). This establishes the $O(D^2)$ upper bound.
+*   **Chained Householder $O(k \cdot D)$:** A single reflection is defined as $y = x - 2 \frac{v (v^T x)}{\|v\|^2}$. If we assume the normal vector $v$ is pre-normalized offline ($\|v\|^2 = 1$), the equation simplifies to $y = x - 2v(v^T x)$.
+    1.  The dot product $c = (v^T x)$ requires $D$ MACs.
+    2.  Scaling the normal vector $s = 2c \cdot v$ requires $D$ multiplications.
+    3.  The final vector subtraction $y = x - s$ requires $D$ subtractions.
+    Total operational count per reflection is approximately $3D$ FLOPs. For $k$ chained reflections, the total is $3k \cdot D$ FLOPs, establishing the $O(k \cdot D)$ upper bound.
+
+*Example with $D = 4096$:*
 
 *   **Dense Matrix $O(D^2)$:** Multiplying a $4096 \times 4096$ rotation matrix by a $4096 \times 1$ activation vector requires $D^2 = 16,777,216$ Multiply-Accumulate (MAC) operations *per token*. If the Prefill sequence is 8,000 tokens long, you are doing ~134 billion operations just to rotate the data before quantization. This stalls the NPU.
-*   **Chained Householder $O(k \cdot D)$:** Using $k=4$ reflections, computing $H x$ requires calculating the dot product $v^T x$ ($D$ MACs) and subtracting the scaled vector ($D$ MACs). Thus, each reflection takes $2D$ operations. For $k=4$, the total cost is $4 \times (2 \times 4096) = 32,768$ MACs per token.
+*   **Chained Householder $O(k \cdot D)$:** Using $k=4$ reflections, computing $H x$ requires calculating the dot product $v^T x$ ($D$ MACs) and subtracting the scaled vector ($D$ MACs). Thus, each reflection takes roughly $2D$ equivalent MACs. For $k=4$, the total cost is $4 \times (2 \times 4096) = 32,768$ MACs per token.
 
 **Speedup:** $16,777,216 \text{ MACs} / 32,768 \text{ MACs} \approx \mathbf{512\times}$ **reduction in compute**, bypassing the bandwidth and ALU bottlenecks entirely.
 
