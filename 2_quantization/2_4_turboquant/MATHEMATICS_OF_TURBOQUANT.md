@@ -49,6 +49,14 @@ By chaining $k$ such reflections (where $k \ll D$), we implicitly define $R$:
 $$ R = H_1 H_2 \dots H_k $$
 This reduces the mathematical complexity of rotation from $O(D^2)$ to $O(k \cdot D)$, entirely eliminating the Prefill ALU bottleneck while achieving the exact same outlier-smearing effect as a dense random rotation.
 
+**Complexity Breakdown & Real-World Example:**
+Let's look at the computational cost for a standard LLM hidden dimension of $D = 4096$:
+
+*   **Dense Matrix $O(D^2)$:** Multiplying a $4096 \times 4096$ rotation matrix by a $4096 \times 1$ activation vector requires $D^2 = 16,777,216$ Multiply-Accumulate (MAC) operations *per token*. If the Prefill sequence is 8,000 tokens long, you are doing ~134 billion operations just to rotate the data before quantization. This stalls the NPU.
+*   **Chained Householder $O(k \cdot D)$:** Using $k=4$ reflections, computing $H x$ requires calculating the dot product $v^T x$ ($D$ MACs) and subtracting the scaled vector ($D$ MACs). Thus, each reflection takes $2D$ operations. For $k=4$, the total cost is $4 \times (2 \times 4096) = 32,768$ MACs per token.
+
+**Speedup:** $16,777,216 \text{ MACs} / 32,768 \text{ MACs} \approx \mathbf{512\times}$ **reduction in compute**, bypassing the bandwidth and ALU bottlenecks entirely.
+
 ---
 
 ## 3. Attention Symmetry (The Mathematical Invariance)
