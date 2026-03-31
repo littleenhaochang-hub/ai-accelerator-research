@@ -88,7 +88,14 @@ def run_qwen_ablation():
     prompts = [
         "What is the capital of France?",
         "Write a python function to compute the Fibonacci sequence.",
-        "Why is the sky blue?"
+        "Translate 'Hello, how are you?' into French.",
+        "Summarize the plot of Romeo and Juliet in one sentence.",
+        "Why is the sky blue?",
+        "What is 15 multiplied by 4?",
+        "Name three primary colors.",
+        "Write a short haiku about a robot.",
+        "Explain quantum computing to a 5-year-old in one sentence.",
+        "List two benefits of regular exercise."
     ]
     
     q_dim = model.config.hidden_size

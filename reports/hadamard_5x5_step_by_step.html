@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Hadamard Transform (5x5 to 8x8) Step-by-Step</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 2rem; color: #333; }
+        h1, h2, h3 { color: #2c3e50; }
+        .step { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #3498db; }
+        .math-block { overflow-x: auto; margin: 1rem 0; font-size: 1.1em; }
+        .highlight { background: #e8f4f8; padding: 1.5rem; border-radius: 8px; font-weight: 500; border-left: 4px solid #00acc1; }
+        ul, ol { margin-top: 0.5rem; }
+        li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <h1>2D Hadamard Transform 完整矩陣推演 (5x5 擴充至 8x8)</h1>
+    <p>為了把整個過程具象化，我們直接把一個 \(5 \times 5\) 的矩陣，透過補零到 \(8 \times 8\)，並進行 2D Hadamard Transform (\(Y = H_8 \cdot X \cdot H_8\)) 的<strong>完整矩陣推演步驟</strong>寫下來。</p>
+    <p>為了方便閱讀，我們用 \(x_{ij}\) 代表原本的數值，並且在 Hadamard 矩陣中，用 <strong><code>+</code> 代表 <code>+1</code></strong>，用 <strong><code>-</code> 代表 <code>-1</code></strong>。</p>
+
+    <div class="step">
+        <h3>Step 1: 準備輸入矩陣與補零 (Zero-Padding)</h3>
+        <p>原本只有一個 \(5 \times 5\) 的矩陣 \(X_{5 \times 5}\)。硬體的第一步，是在它的右邊和下面補零，把它擴充成 \(8 \times 8\) 的矩陣 \(X_{pad}\)：</p>
+        <div class="math-block">
+        $$
+        X_{pad} =
+        \begin{bmatrix}
+        x_{11} & x_{12} & x_{13} & x_{14} & x_{15} & 0 & 0 & 0 \\
+        x_{21} & x_{22} & x_{23} & x_{24} & x_{25} & 0 & 0 & 0 \\
+        x_{31} & x_{32} & x_{33} & x_{34} & x_{35} & 0 & 0 & 0 \\
+        x_{41} & x_{42} & x_{43} & x_{44} & x_{45} & 0 & 0 & 0 \\
+        x_{51} & x_{52} & x_{53} & x_{54} & x_{55} & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 
+        \end{bmatrix}
+        $$
+        </div>
+    </div>
+
+    <div class="step">
+        <h3>Step 2: 生成標準的 8x8 Hadamard 矩陣 (\(H_8\))</h3>
+        <p>Hadamard 矩陣是由 \(2 \times 2\) 不斷遞迴展開的（\(H_{2n} = \begin{bmatrix} H_n & H_n \\ H_n & -H_n \end{bmatrix}\)）。</p>
+        <p>\(H_8\) 的矩陣長這樣（注意：這裡面<strong>完全沒有小數，只有 1 和 -1</strong>）：</p>
+        <div class="math-block">
+        $$
+        H_8 = 
+        \begin{bmatrix}
+        + & + & + & + & + & + & + & + \\
+        + & - & + & - & + & - & + & - \\
+        + & + & - & - & + & + & - & - \\
+        + & - & - & + & + & - & - & + \\
+        + & + & + & + & - & - & - & - \\
+        + & - & + & - & - & + & - & + \\
+        + & + & - & - & - & - & + & + \\
+        + & - & - & + & - & + & + & - 
+        \end{bmatrix}
+        $$
+        </div>
+        <p><em>(註：數學上最後結果會乘上一個縮放係數 \(\frac{1}{8}\)，但在硬體設計上，通常會留到整數運算完才做一次 bit-shift 處理)</em></p>
+    </div>
+
+    <div class="step">
+        <h3>Step 3: 第一階段運算 — 對「列 (Row)」做轉換</h3>
+        <p>在 2D 轉換中，公式是 \(Y = H_8 \cdot X_{pad} \cdot H_8\)。我們先計算右半部：\(Z = X_{pad} \cdot H_8\)。這代表我們<strong>把 \(X\) 的每一個橫列 (Row)，分別乘上 \(H_8\)</strong>。</p>
+        <p>單獨抽 \(X_{pad}\) 的<strong>第一列</strong> \([x_{11}, x_{12}, x_{13}, x_{14}, x_{15}, 0, 0, 0]\) 來看。乘上 \(H_8\) 後，這列產生的新數值會變成：</p>
+        <ul>
+            <li>第 1 個數字：\(x_{11} + x_{12} + x_{13} + x_{14} + x_{15} + 0 + 0 + 0\)</li>
+            <li>第 2 個數字：\(x_{11} - x_{12} + x_{13} - x_{14} + x_{15} - 0 + 0 - 0\)</li>
+            <li>第 3 個數字：\(x_{11} + x_{12} - x_{13} - x_{14} + x_{15} + 0 - 0 - 0\)</li>
+            <li>...依此類推，算出 8 個數字。</li>
+        </ul>
+        <p>做完後，會得到一個中間矩陣 \(Z\)（下方三列因為輸入為 0，運算時會直接略過或全為 0）：</p>
+        <div class="math-block">
+        $$
+        Z = 
+        \begin{bmatrix}
+        z_{11} & z_{12} & z_{13} & z_{14} & z_{15} & z_{16} & z_{17} & z_{18} \\
+        z_{21} & z_{22} & z_{23} & z_{24} & z_{25} & z_{26} & z_{27} & z_{28} \\
+        z_{31} & z_{32} & z_{33} & z_{34} & z_{35} & z_{36} & z_{37} & z_{38} \\
+        z_{41} & z_{42} & z_{43} & z_{44} & z_{45} & z_{46} & z_{47} & z_{48} \\
+        z_{51} & z_{52} & z_{53} & z_{54} & z_{55} & z_{56} & z_{57} & z_{58} \\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 
+        \end{bmatrix}
+        $$
+        </div>
+    </div>
+
+    <div class="step">
+        <h3>Step 4: 第二階段運算 — 對「行 (Column)」做轉換</h3>
+        <p>最後一步是計算 \(Y = H_8 \cdot Z\)。這代表我們<strong>把剛才算出的 \(Z\) 的每一個直行 (Column)，再乘上 \(H_8\)</strong>。</p>
+        <p>單獨抽 \(Z\) 的<strong>第一直行</strong> \([z_{11}, z_{21}, z_{31}, z_{41}, z_{51}, 0, 0, 0]^T\) 來看。乘上 \(H_8\) 後，這行產生的最終數值 \(y\) 會變成：</p>
+        <ul>
+            <li>第 1 個數字：\(z_{11} + z_{21} + z_{31} + z_{41} + z_{51}\)</li>
+            <li>第 2 個數字：\(z_{11} - z_{21} + z_{31} - z_{41} + z_{51}\)</li>
+            <li>...依此類推。</li>
+        </ul>
+        <p>最後得到的矩陣 \(Y_{8 \times 8}\)，裡面每一個位置的數字，<strong>都完美包含了原始 \(5 \times 5\) 矩陣中所有 25 個數字的某種加減法組合</strong>。</p>
+    </div>
+
+    <div class="highlight">
+        <h3>為什麼這在硬體上是無敵的？</h3>
+        <ol>
+            <li><strong>\(5 \times 5\) 原本的數值，被 \(100\%\) 平均地分攤到了 \(8 \times 8\) 的 64 個格子裡。</strong> 即使 \(x_{11}\) 是一個數值極大 (比如 100) 的 Outlier，它到了最終矩陣 \(Y\) 時，它的能量也被切成了 64 份，分布在每個格子中。</li>
+            <li><strong>整個矩陣乘法過程中，沒有出現任何一個 <code>* 0.866</code> 或 <code>* 0.5</code> 的浮點數乘法。</strong> 所有的運算，就只有把你原本的數字拿來相加或相減，這對底層硬體的 ALU 來說，是最省電、最高效的純組合邏輯電路。</li>
+        </ol>
+    </div>
+</body>
+</html>
