@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #2d3748; max-width: 1400px; margin: 0 auto; padding: 30px; background-color: #f7fafc; }
+    .container { background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; }
+    h1 { color: #2b6cb0; border-bottom: 3px solid #e2e8f0; padding-bottom: 10px; font-size: 2.2em; }
+    h2 { color: #2c5282; margin-top: 40px; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; font-size: 1.5em; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.85em; white-space: nowrap; }
+    th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+    th { background-color: #ebf8ff; color: #2b6cb0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; font-size: 0.80em; position: sticky; top: 0; }
+    tr:nth-child(even) { background-color: #faf8f8; }
+    tr:hover { background-color: #f1f5f9; }
+    p { font-size: 1.05em; }
+    .status-green { color: #38a169; font-weight: bold; }
+    .status-red { color: #e53e3e; font-weight: bold; }
+    .status-yellow { color: #d69e2e; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Master Ablation Unified Data Table: Attention & FFN Quantization</h1>
+<p><strong>Target Model:</strong> Qwen2.5-0.5B-Instruct</p>
+<p><strong>Date:</strong> April 2026</p>
+<p>To provide a clear, unified view of all configurations tested across the quantization pipeline, this master table maps out the exact precision and mechanisms applied to both the Attention and FFN blocks, along with the resulting model-level metrics.</p>
+<table>
+<tr>
+<th>Experiment Name</th>
+<th>Model Layer Scope</th>
+<th>Attn Act</th>
+<th>Attn KV</th>
+<th>Attn Mechanism</th>
+<th>FFN Act</th>
+<th>FFN W</th>
+<th>FFN Mechanism</th>
+<th>SNR (dB)</th>
+<th>RMSE</th>
+<th>Cosine Sim</th>
+<th>Pass Rate</th>
+<th>Status / Outcome</th>
+</tr>
+<tr>
+<td><strong>0. FP16 Baseline<strong></strong></td>
+<td>All Layers</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>∞</td>
+<td>0.000</td>
+<td>1.000</td>
+<td>70%</td>
+<td><span class="status-green">🟢 Native performance.</span></td>
+</tr>
+<tr>
+<td><strong>1. A8KV8 (Attn Only)<strong></strong></td>
+<td>All Layers</td>
+<td>8</td>
+<td>8</td>
+<td>Uniform</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>12.40</td>
+<td>1.210</td>
+<td>0.952</td>
+<td>70%</td>
+<td><span class="status-green">🟢 Perfect fallback. INT8 absorbs KV outliers.</span></td>
+</tr>
+<tr>
+<td><strong>2. A4KV4 (Attn Only)<strong></strong></td>
+<td>All Layers</td>
+<td>4</td>
+<td>4</td>
+<td>1D Hadamard (Feature)</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>-0.61</td>
+<td>9.617</td>
+<td>0.466</td>
+<td>0%</td>
+<td><span class="status-red">🔴 OOV Collapse. Hadamard noise breaks Softmax.</span></td>
+</tr>
+<tr>
+<td><strong>3. A4KV4 (Attn Only)<strong></strong></td>
+<td>All Layers</td>
+<td>4</td>
+<td>4</td>
+<td>2D Hadamard (Tok+Feat)</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>-1.36</td>
+<td>10.500</td>
+<td>0.358</td>
+<td>0%</td>
+<td><span class="status-red">🔴 Overflow. Sequence length breaks energy bounds.</span></td>
+</tr>
+<tr>
+<td><strong>4. W4A16 (FFN Only)<strong></strong></td>
+<td>All Layers</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>16</td>
+<td>4</td>
+<td>Block 32</td>
+<td>8.50</td>
+<td>2.140</td>
+<td>0.922</td>
+<td>75%</td>
+<td><span class="status-green">🟢 Logic fully retained. Memory bound resolved.</span></td>
+</tr>
+<tr>
+<td><strong>5. W4A4 Naive (FFN)<strong></strong></td>
+<td>All Layers</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>4</td>
+<td>4</td>
+<td>Uniform</td>
+<td><0.00</td>
+<td>>10.0</td>
+<td><0.200</td>
+<td>0%</td>
+<td><span class="status-red">🔴 Catastrophic forgetting. SiLU destroys uniform grid.</span></td>
+</tr>
+<tr>
+<td><strong>6. W4A4 Smooth (FFN)<strong></strong></td>
+<td>All Layers</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>4</td>
+<td>4</td>
+<td>SmoothQuant (α=0.75)</td>
+<td>-0.58</td>
+<td>9.593</td>
+<td>0.468</td>
+<td>0%</td>
+<td><span class="status-red">🔴 Fails to smooth SiLU spikes dynamically.</span></td>
+</tr>
+<tr>
+<td><strong>7. W4A4 Block 32 (FFN)<strong></strong></td>
+<td>All Layers</td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>4</td>
+<td>4</td>
+<td>Block 32 Micro-Scaling</td>
+<td>4.24</td>
+<td>5.511</td>
+<td>0.797</td>
+<td>75%</td>
+<td><span class="status-green">🟢 <strong>Breakthrough.<strong> Outliers successfully isolated.</strong></span></td>
+</tr>
+<tr>
+<td><strong>8. A8KV8 + W4A4 Fusion<strong></strong></td>
+<td>All Layers</td>
+<td>8</td>
+<td>8</td>
+<td>Uniform</td>
+<td>4</td>
+<td>4</td>
+<td>Block 32</td>
+<td>3.40</td>
+<td>6.820</td>
+<td>0.743</td>
+<td>65%</td>
+<td><span class="status-yellow">🟡 <strong>Hardware Sweet Spot.<strong> Survives "SNR Death Line".</strong></span></td>
+</tr>
+<tr>
+<td><strong>9. A16KV4 + W4A4 Fusion<strong></strong></td>
+<td>All Layers</td>
+<td>16</td>
+<td>4</td>
+<td>1D Hadamard</td>
+<td>4</td>
+<td>4</td>
+<td>Block 32</td>
+<td>0.55</td>
+<td>8.429</td>
+<td>0.542</td>
+<td>5%</td>
+<td><span class="status-red">🔴 Cascading Error. KV4 noise destroys FFN A4.</span></td>
+</tr>
+<tr>
+<td><strong>10. A8KV4 + W4A4 Fusion<strong></strong></td>
+<td>All Layers</td>
+<td>8</td>
+<td>4</td>
+<td>1D Hadamard</td>
+<td>4</td>
+<td>4</td>
+<td>Block 32</td>
+<td>0.56</td>
+<td>8.414</td>
+<td>0.537</td>
+<td>0%</td>
+<td><span class="status-red">🔴 Cascading Error. Attention input bit-width irrelevant.</span></td>
+</tr>
+<tr>
+<td><strong>11. Mixed-Precision FFN<strong></strong></td>
+<td><strong>Mid Layers (1-22)<strong></strong></td>
+<td>16</td>
+<td>16</td>
+<td>None</td>
+<td>4</td>
+<td>4</td>
+<td>Block 32</td>
+<td>4.92</td>
+<td>N/A</td>
+<td>0.822</td>
+<td>70%</td>
+<td><span class="status-green">🟢 <strong>Ultimate Solution.<strong> Protecting boundaries restores IQ.</strong></span></td>
+</tr>
+</table>
+<hr>
+<h2>Future Hardware Direction (Data Type & Scale Precisions)</h2>
+<p>Based on the table above, the optimal hardware architecture moving forward requires transitioning from <strong>INT4</strong> to **FP4 (E2M1)** to naturally absorb normal activations around zero, while maintaining outliers in the sparse upper range. Furthermore, the FFN Sub-Channel Mechanism (Block 32) must be optimized to use **E8M0** or **E4M3 (FP8)** scaling factors to reduce the SRAM footprint from an effective 4.5 bits down to 4.25 bits.</p>
+</div></body></html>
+    <tr>
+        <td><strong>11. Mixed-Precision FFN</strong></td>
+        <td><strong>Mid Layers (1-22)</strong></td>
+        <td>16</td>
+        <td>16</td>
+        <td>None</td>
+        <td>4</td>
+        <td>4</td>
+        <td>Block 32</td>
+        <td>4.92</td>
+        <td>N/A</td>
+        <td>0.822</td>
+        <td>70%</td>
+        <td><span class="status-green">🟢 Ultimate Solution.</span><br>Protecting boundaries restores IQ.</td>
+    </tr>
+    <tr>
+        <td><strong>12. Fusion Mixed-Precision</strong></td>
+        <td><strong>Mid Layers (1-22)</strong></td>
+        <td>4</td>
+        <td>4</td>
+        <td>1D Hadamard</td>
+        <td>4</td>
+        <td>4</td>
+        <td>Block 32</td>
+        <td>1.90</td>
+        <td>N/A</td>
+        <td>0.672</td>
+        <td>20%</td>
+        <td><span class="status-red">🔴 Cascading Error Wins.</span><br>Attention A4KV4 noise still destroys FFN, despite FP16 boundaries.</td>
+    </tr>
+    <tr>
+        <td><strong>13. Ultimate Fusion A8KV8</strong></td>
+        <td><strong>Mid Layers (1-22)</strong></td>
+        <td>8</td>
+        <td>8</td>
+        <td>Uniform</td>
+        <td>4</td>
+        <td>4</td>
+        <td>Block 32</td>
+        <td>5.02</td>
+        <td>N/A</td>
+        <td>0.822</td>
+        <td>80%</td>
+        <td><span class="status-green">🟢 The Holy Grail.</span><br>Safely compresses compute to W4A4 and memory to A8KV8 without QAT.</td>
+    </tr>
+    <tr>
+        <td><strong>14. All 4-Bit Ultimate Fusion</strong></td>
+        <td><strong>Mid Layers (1-22)</strong></td>
+        <td>4</td>
+        <td>4</td>
+        <td>1D Hadamard</td>
+        <td>4</td>
+        <td>4</td>
+        <td>Block 32</td>
+        <td>2.36</td>
+        <td>N/A</td>
+        <td>0.667</td>
+        <td>70%</td>
+        <td><span class="status-green">🟢 Surprising Recovery.</span><br>Quantizing Attention Projections to W4A4 (Block 32) alongside KV4 and FFN somehow regularized the noise. Restored baseline reasoning!</td>
+    </tr>
+
+<tr>
+    <td><strong>15. A4KV4 + W4A4 (No Block32)</strong></td>
+    <td><strong>Mid Layers (1-22)</strong></td>
+    <td>4</td>
+    <td>4</td>
+    <td>1D Hadamard</td>
+    <td>4</td>
+    <td>4</td>
+    <td>Uniform (No Block 32)</td>
+    <td>-1.15</td>
+    <td>N/A</td>
+    <td>0.252</td>
+    <td>10%</td>
+    <td><span class="status-red">🔴 Catastrophic Failure.</span><br>Removing Block 32 from the FFN and Attention Projections causes immediate outlier collapse. The model hallucinates wildly.</td>
+</tr>
+
+<tr>
+    <td><strong>16. A8KV4 + W4A4 FFN (Mixed)</strong></td>
+    <td><strong>Mid Layers (1-22)</strong></td>
+    <td>8</td>
+    <td>4</td>
+    <td>1D Hadamard</td>
+    <td>4</td>
+    <td>4</td>
+    <td>Block 32</td>
+    <td>4.40</td>
+    <td>N/A</td>
+    <td>0.797</td>
+    <td>50%</td>
+    <td><span class="status-yellow">🟡 Moderate Degradation.</span><br>Providing 8-bit input to Attention helps SNR (4.40 dB), but KV4 noise still degrades the FFN logic. Barely survives compared to full A8KV8.</td>
+</tr>
+
+<tr>
+    <td><strong>17. A4KV4 (QKV Block 32) + FFN W4A4</strong></td>
+    <td><strong>Mid Layers (1-22)</strong></td>
+    <td>4</td>
+    <td>4</td>
+    <td>1D Hadamard + Block 32</td>
+    <td>4</td>
+    <td>4</td>
+    <td>Block 32</td>
+    <td>3.38</td>
+    <td>N/A</td>
+    <td>0.743</td>
+    <td>50%</td>
+    <td><span class="status-yellow">🟡 Impressive Rescue.</span><br>Applying Sub-Channel Block 32 Quantization directly to Q, K, and V <em>after</em> the Hadamard transform drastically improved SNR (from 2.36 dB to 3.38 dB) compared to uniform KV quantization. Nearly survives the "Death Line", demonstrating Block 32 is necessary for both Attention AND FFN.</td>
+</tr>
+
+
+
+</table>
+<h2>Future Hardware Direction (Data Type & Scale Precisions)</h2>
+<p>Based on the table above, the optimal hardware architecture moving forward requires transitioning from <strong>INT4</strong> to <strong>FP4 (E2M1)</strong> to naturally absorb normal activations around zero, while maintaining outliers in the sparse upper range. Furthermore, the FFN Sub-Channel Mechanism (Block 32) must be optimized to use <strong>E8M0</strong> or <strong>E4M3 (FP8)</strong> scaling factors to reduce the SRAM footprint from an effective 4.5 bits down to 4.25 bits.</p>
+</div></body></html>
