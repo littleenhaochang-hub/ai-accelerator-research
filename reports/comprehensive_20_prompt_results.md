@@ -1,0 +1,254 @@
+# 20-Prompt Ablation Test Results (Attention + FFN)
+## Summary Table
+| Configuration | Pass Rate | Total Inference Time |
+| :--- | :--- | :--- |
+| Baseline | 70.0% | 8.48s |
+| A4KV4 | 0.0% | 11.88s |
+| W4A4 | 75.0% | 95.68s |
+| All_4bit | 0.0% | 98.52s |
+
+## Detailed Logs
+### 1. Baseline (FP16)
+- **Q1:** If I have 5 apples and eat 2, how many are left?
+  - **Out:** `If you start with 5 apples and eat 2 of them, you would be left with:`
+  - **Eval:** 🔴 FAIL
+- **Q2:** What is 15 plus 27?
+  - **Out:** `The sum of 15 and 27 is:  \[ 15 + 27`
+  - **Eval:** 🔴 FAIL
+- **Q3:** A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?
+  - **Out:** `Let's denote the cost of the ball as \( B \) dollars.  According to the problem,`
+  - **Eval:** 🔴 FAIL
+- **Q4:** Solve for x: 2x + 6 = 14
+  - **Out:** `To solve the equation \(2x + 6 = 14\), we will follow these`
+  - **Eval:** 🟢 PASS
+- **Q5:** What is the capital of Japan?
+  - **Out:** `The capital of Japan is Tokyo.`
+  - **Eval:** 🟢 PASS
+- **Q6:** Who wrote the play 'Hamlet'?
+  - **Out:** `The play "Hamlet" was written by William Shakespeare. He lived from 1564`
+  - **Eval:** 🟢 PASS
+- **Q7:** What is the chemical symbol for water?
+  - **Out:** `The chemical symbol for water is H2O.`
+  - **Eval:** 🟢 PASS
+- **Q8:** Which planet is known as the Red Planet?
+  - **Out:** `The planet known as the "Red Planet" is Mars. It was named after the Roman god of`
+  - **Eval:** 🟢 PASS
+- **Q9:** In what year did the Titanic sink?
+  - **Out:** `The RMS Titanic sank on April 15, 1912, at 10`
+  - **Eval:** 🟢 PASS
+- **Q10:** Write a Python function 'add' to add two numbers.
+  - **Out:** `Certainly! Below is a simple Python function named `add` that takes two arguments and returns their sum`
+  - **Eval:** 🟢 PASS
+- **Q11:** What does HTML stand for?
+  - **Out:** `HTML stands for HyperText Markup Language. It is the standard markup language used to create web pages and`
+  - **Eval:** 🟢 PASS
+- **Q12:** List three primary colors.
+  - **Out:** `Three primary colors are red, blue, and yellow. These colors are fundamental in the color spectrum and`
+  - **Eval:** 🟢 PASS
+- **Q13:** Translate 'Hello, world' into French.
+  - **Out:** `Bonjour, le monde.`
+  - **Eval:** 🟢 PASS
+- **Q14:** What is the opposite of the word 'hot'?
+  - **Out:** `The opposite of the word "hot" in English would be "cold".`
+  - **Eval:** 🟢 PASS
+- **Q15:** What is 10 multiplied by 5?
+  - **Out:** `To solve the problem of multiplying 10 by 5, you simply add 10 to`
+  - **Eval:** 🔴 FAIL
+- **Q16:** If tomorrow is Tuesday, what day was yesterday?
+  - **Out:** `If tomorrow is Tuesday, then yesterday must have been Monday.`
+  - **Eval:** 🔴 FAIL
+- **Q17:** Name a large grey animal with a trunk.
+  - **Out:** `The large grey animal you're referring to is likely the African Elephant. Elephants are known for their`
+  - **Eval:** 🟢 PASS
+- **Q18:** Is a tomato a fruit or a vegetable botanically?
+  - **Out:** `A tomato is classified as both a fruit and a vegetable in the botanical sense. Here's why:`
+  - **Eval:** 🟢 PASS
+- **Q19:** How many continents are there on Earth?
+  - **Out:** `There are 5 major continents on Earth: Asia, Africa, North America, South America, and`
+  - **Eval:** 🔴 FAIL
+- **Q20:** Why is the sky blue? Explain in 3 words.
+  - **Out:** `The sky is blue because of the scattering of sunlight by tiny particles in the Earth's atmosphere. This`
+  - **Eval:** 🟢 PASS
+### 2. A4KV4 Only (Attention Hadamard)
+- **Q1:** If I have 5 apples and eat 2, how many are left?
+  - **Out:** `SuperAm anelinearn twoascusokeres一时n em. CaroonsteoOneeveoo`
+  - **Eval:** 🔴 FAIL
+- **Q2:** What is 15 plus 27?
+  - **Out:** `\ for emossoo.  Assistantie. Postimesoonoonessuild,ev Ober Evectors,`
+  - **Eval:** 🔴 FAIL
+- **Q3:** A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?
+  - **Out:** `\nose 1ettOoo ilaotelavou1t = evascus,evoteascus.`
+  - **Eval:** 🔴 FAIL
+- **Q4:** Solve for x: 2x + 6 = 14
+  - **Out:** `E+89move interascus Cir ElenaorsOallerooetterboldsychOOesigroup`
+  - **Eval:** 🔴 FAIL
+- **Q5:** What is the capital of Japan?
+  - **Out:** `."</o emore.   fteroo allby thee,evah. P Cirking,evectors`
+  - **Eval:** 🔴 FAIL
+- **Q6:** Who wrote the play 'Hamlet'?
+  - **Out:** `oldersiewerseyoubyfammonen-someeltmore fl (fivei fouranni`
+  - **Eval:** 🔴 FAIL
+- **Q7:** What is the chemical symbol for water?
+  - **Out:** `Assistantoreking emersionie.   1.\(shalAmes Cir0_,o`
+  - **Eval:** 🔴 FAIL
+- **Q8:** Which planet is known as the Red Planet?
+  - **Out:** `1 (AS-2ieFurOneurseVehiclesGoneascus Cirte.viewDidLoad/FI`
+  - **Eval:** 🔴 FAIL
+- **Q9:** In what year did the Titanic sink?
+  - **Out:** `新世纪. * We纽ogtheroo.   ernetOnieolins数据显示 em Olteone`
+  - **Eval:** 🔴 FAIL
+- **Q10:** Write a Python function 'add' to add two numbers.
+  - **Out:** `nature red S구 theshalkingcasteroonutorpe数据显示 ��oemectorsinaster,`
+  - **Eval:** 🔴 FAIL
+- **Q11:** What does HTML stand for?
+  - **Out:** `an, (And(1Aisesou.  1구Oascusettekingữ,\`
+  - **Eval:** 🔴 FAIL
+- **Q12:** List three primary colors.
+  - **Out:** `To Eshaloroon) **B0.ots ters-ooieullengsteringte`
+  - **Eval:** 🔴 FAIL
+- **Q13:** Translate 'Hello, world' into French.
+  - **Out:** `(1sizing �olex (n00.OL5or.00.`
+  - **Eval:** 🔴 FAIL
+- **Q14:** What is the opposite of the word 'hot'?
+  - **Out:** `\,\, oexontooeveO数据显示oinsltOut_otel,ev.oonore`
+  - **Eval:** 🔴 FAIL
+- **Q15:** What is 10 multiplied by 5?
+  - **Out:** `\otsOuttetoo  Thesou,evok enossemotoutimesioftero`
+  - **Eval:** 🔴 FAIL
+- **Q16:** If tomorrow is Tuesday, what day was yesterday?
+  - **Out:** `C炔obrettooieomIGoo. 0صحابotelAmidOn emmsone`
+  - **Eval:** 🔴 FAIL
+- **Q17:** Name a large grey animal with a trunk.
+  - **Out:** `eon anakevaolex.viewDidLoadascusflo zeroomoonau炔On uurowinsom`
+  - **Eval:** 🔴 FAIL
+- **Q18:** Is a tomato a fruit or a vegetable botanically?
+  - **Out:** `02ooeveresoe infodysode炔ero蒿iNavorkingsenoughib`
+  - **Eval:** 🔴 FAIL
+- **Q19:** How many continents are there on Earth?
+  - **Out:** `9 Cirkingtronamnoemuleor,evahethammer.0inabgivou`
+  - **Eval:** 🔴 FAIL
+- **Q20:** Why is the sky blue? Explain in 3 words.
+  - **Out:** `00000()구oookingoo.  1ascusooOoftGacter,ev`
+  - **Eval:** 🔴 FAIL
+### 3. W4A4 Only (FFN Block32)
+- **Q1:** If I have 5 apples and eat 2, how many are left?
+  - **Out:** `To answer the question about apples you ate, we need to consider what happens when you consume an apple`
+  - **Eval:** 🔴 FAIL
+- **Q2:** What is 15 plus 27?
+  - **Out:** `The sum of 15 and 27 is 42.`
+  - **Eval:** 🟢 PASS
+- **Q3:** A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?
+  - **Out:** `To find out how much the ball costs, we can use the following steps:  Let's denote:`
+  - **Eval:** 🔴 FAIL
+- **Q4:** Solve for x: 2x + 6 = 14
+  - **Out:** `To find the value of \( x \) in this equation, we need to isolate it on one`
+  - **Eval:** 🔴 FAIL
+- **Q5:** What is the capital of Japan?
+  - **Out:** `The capital of Japan is Tokyo. It is known for its modern architecture and vibrant culture, but it`
+  - **Eval:** 🟢 PASS
+- **Q6:** Who wrote the play 'Hamlet'?
+  - **Out:** `The famous play "Hamlet" was written by William Shakespeare, who lived from 156`
+  - **Eval:** 🟢 PASS
+- **Q7:** What is the chemical symbol for water?
+  - **Out:** `The chemical symbol for water (H2O) represents the formula of two hydrogen atoms bonded to one`
+  - **Eval:** 🟢 PASS
+- **Q8:** Which planet is known as the Red Planet?
+  - **Out:** `The term "Red Planet" refers to Mars in its original title of Earth-Mars system. The`
+  - **Eval:** 🟢 PASS
+- **Q9:** In what year did the Titanic sink?
+  - **Out:** `The Titanic sank on April 15, 1912, and it was likely that`
+  - **Eval:** 🟢 PASS
+- **Q10:** Write a Python function 'add' to add two numbers.
+  - **Out:** `Sure! Below is the Python code for adding two numbers:  ```python def add(x, y`
+  - **Eval:** 🟢 PASS
+- **Q11:** What does HTML stand for?
+  - **Out:** `HTML stands for Hypertext Markup Language, which is the standard markup language used to create and structure the`
+  - **Eval:** 🟢 PASS
+- **Q12:** List three primary colors.
+  - **Out:** `Three primary colors are red, blue, and yellow. These colors are fundamental in the color spectrum and`
+  - **Eval:** 🟢 PASS
+- **Q13:** Translate 'Hello, world' into French.
+  - **Out:** `"Hello, world" can be translated to the French as "Salut, monde". The full`
+  - **Eval:** 🟢 PASS
+- **Q14:** What is the opposite of the word 'hot'?
+  - **Out:** `The opposite of "cold" is "temperate," which means neither hot nor cold but rather moderate`
+  - **Eval:** 🟢 PASS
+- **Q15:** What is 10 multiplied by 5?
+  - **Out:** `The product of 10 and 5 is 50.`
+  - **Eval:** 🟢 PASS
+- **Q16:** If tomorrow is Tuesday, what day was yesterday?
+  - **Out:** `To determine what day it was yesterday given that today is Tuesday and the current date is Thursday, you`
+  - **Eval:** 🔴 FAIL
+- **Q17:** Name a large grey animal with a trunk.
+  - **Out:** `A large, grey elephant is one of the most famous and iconic animals in the world. Elephants`
+  - **Eval:** 🟢 PASS
+- **Q18:** Is a tomato a fruit or a vegetable botanically?
+  - **Out:** `A tomato is classified as a fruit because it is a single seed-bearing structure that contains seeds and an`
+  - **Eval:** 🟢 PASS
+- **Q19:** How many continents are there on Earth?
+  - **Out:** `There are 14 continents on Earth: Africa, Antarctica, Asia, Australia, Europe, North`
+  - **Eval:** 🔴 FAIL
+- **Q20:** Why is the sky blue? Explain in 3 words.
+  - **Out:** `The color of the sky comes from our eyes, which have pigments that reflect light and shade to`
+  - **Eval:** 🟢 PASS
+### 4. All 4-bit (A4KV4 + W4A4_Block32)
+- **Q1:** If I have 5 apples and eat 2, how many are left?
+  - **Out:** `0eoin (,1eorOm's is am.OI.Editor,urseOp.,et`
+  - **Eval:** 🔴 FAIL
+- **Q2:** What is 15 plus 27?
+  - **Out:** `9. The A for the.OPER essages 诞 扫ster.OTE.?0.alignment`
+  - **Eval:** 🔴 FAIL
+- **Q3:** A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?
+  - **Out:** `soles,调剂gods otr is (,ar aore.  return.eveSeorO`
+  - **Eval:** 🔴 FAIL
+- **Q4:** Solve for x: 2x + 6 = 14
+  - **Out:** `60_ever ofeor Antجر rake. ( EOn urname 3调剂 andeam`
+  - **Eval:** 🔴 FAIL
+- **Q5:** What is the capital of Japan?
+  - **Out:** `auor 0eor (调剂solesovapoles1(ulanmerian,جر,uset`
+  - **Eval:** 🔴 FAIL
+- **Q6:** Who wrote the play 'Hamlet'?
+  - **Out:** `TotaluntersteeroThree milmut.Euler.      =suiteetole  The utooo1`
+  - **Eval:** 🔴 FAIL
+- **Q7:** What is the chemical symbol for water?
+  - **Out:** `lox1 rakeoجر箔PickstOOdooSal.filesoseor调剂 (serterovoo`
+  - **Eval:** 🔴 FAIL
+- **Q8:** Which planet is known as the Red Planet?
+  - **Out:** `Assistanteam rakeeor箔ectorssoles)fromabligan an Shockجر.ulan 1 hand`
+  - **Eval:** 🔴 FAIL
+- **Q9:** In what year did the Titanic sink?
+  - **Out:** `1جر (serter is for emolistmer. useton$eve.e,uno,ev`
+  - **Eval:** 🔴 FAIL
+- **Q10:** Write a Python function 'add' to add two numbers.
+  - **Out:** `3stoSجر诲aeormon.alignment.*F调剂[     寡ordes =сильO`
+  - **Eval:** 🔴 FAIL
+- **Q11:** What does HTML stand for?
+  - **Out:** `调剂or theder, rake sar subjecteor codelesos Bordersidoجر équipéomeam引力`
+  - **Eval:** 🔴 FAIL
+- **Q12:** List three primary colors.
+  - **Out:** `sou](urseAppeor.alignment] andoes  **0. ertorsجر is`
+  - **Eval:** 🔴 FAIL
+- **Q13:** Translate 'Hello, world' into French.
+  - **Out:** `0rHiale One, Simmedo9Autythers =ACA调剂eorpeIdoo`
+  - **Eval:** 🔴 FAIL
+- **Q14:** What is the opposite of the word 'hot'?
+  - **Out:** `"solesous t andeor.alignment, Off�  see équipé1جر ( iscas  em`
+  - **Eval:** 🔴 FAIL
+- **Q15:** What is 10 multiplied by 5?
+  - **Out:** `Feorokseve.ASulan. Ampl O équipé lash the调剂vis teجرwea`
+  - **Eval:** 🔴 FAIL
+- **Q16:** If tomorrow is Tuesday, what day was yesterday?
+  - **Out:** `feweor调剂0🏻箔 pe-snedsotp@examplesutor,EMoo 1جر,`
+  - **Eval:** 🔴 FAIL
+- **Q17:** Name a large grey animal with a trunk.
+  - **Out:** `Kجر. [oeoropleoo泡豆esout équipé OE  Action, no0e`
+  - **Eval:** 🔴 FAIL
+- **Q18:** Is a tomato a fruit or a vegetable botanically?
+  - **Out:** `For rake.alignmented调剂unitstopeeorجر équipé op action the S,or is:`
+  - **Eval:** 🔴 FAIL
+- **Q19:** How many continents are there on Earth?
+  - **Out:** `head thesteeorееnOجرovTranslatefamedoo1arveral (serter调剂-efore`
+  - **Eval:** 🔴 FAIL
+- **Q20:** Why is the sky blue? Explain in 3 words.
+  - **Out:** `forurselessinseorüyor, suit调剂* = jam, $ eforeooo.definitions`
+  - **Eval:** 🔴 FAIL

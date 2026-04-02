@@ -59,7 +59,7 @@ def prefill_attention_test():
     S_approx = S_prime @ H_token.T  # Since symmetric, H_token.T == H_token
     
     # Metrics
-    cos_sim = F.cosine_similarity(S_baseline.unsqueeze(0), S_approx.unsqueeze(0)).item()
+    cos_sim = F.cosine_similarity(S_baseline.unsqueeze(0), S_approx.unsqueeze(0)).mean().item()
     snr = 10 * torch.log10(torch.sum(S_baseline**2) / torch.sum((S_baseline - S_approx)**2)).item()
     
     print(f"Cosine Similarity: {cos_sim:.4f}")
@@ -94,7 +94,7 @@ def decode_attention_test():
     # Direct inner product
     S_approx = Q_trans @ K_trans_q.T
     
-    cos_sim = F.cosine_similarity(S_baseline.unsqueeze(0), S_approx.unsqueeze(0)).item()
+    cos_sim = F.cosine_similarity(S_baseline.unsqueeze(0), S_approx.unsqueeze(0)).mean().item()
     snr = 10 * torch.log10(torch.sum(S_baseline**2) / torch.sum((S_baseline - S_approx)**2)).item()
     
     print(f"Cosine Similarity: {cos_sim:.4f}")

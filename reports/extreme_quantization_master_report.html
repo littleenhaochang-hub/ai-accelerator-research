@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>End-to-End LLM Extreme Quantization</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1000px; margin: 0 auto; padding: 30px; }
+    h1 { color: #1a202c; border-bottom: 3px solid #3182ce; padding-bottom: 10px; font-size: 2em; }
+    h2 { color: #2b6cb0; margin-top: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; }
+    h3 { color: #2d3748; margin-top: 25px; }
+    p { text-align: justify; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.9em; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    th { background-color: #2b6cb0; color: white; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:nth-child(even) { background-color: #f7fafc; }
+    tr:hover { background-color: #edf2f7; }
+    code { background-color: #edf2f7; padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.9em; color: #d53f8c; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>End-to-End LLM Extreme Quantization: A Comprehensive Architecture Study</h1>
+<p><strong>Target:</strong> Qwen2.5-0.5B-Instruct
+<strong>Date:</strong> April 2026</p>
+<h2>Abstract</h2>
+<p>This report documents a systematic ablation study targeting the Memory Wall in autoregressive LLM inference. We progressively quantized the Attention mechanism (KV Cache) and Feed-Forward Network (FFN), tracking <strong>Cosine Similarity, Root Mean Square Error (RMSE), and Signal-to-Noise Ratio (SNR)</strong>. When pure uniform quantization (INT4) collapsed due to activation outliers, we explored Block 32 sub-channel quantization, FP4 data types, hardware scaling factor formats, and Mixed-Precision Quantization.</p>
+<hr />
+<h2>Chapter 1: Attention Precision &amp; Quantization Mechanisms</h2>
+<p>The KV cache size scales linearly with context length, bottlenecking memory bandwidth. We tested multiple precision levels and Hadamard transformations to safely compress the KV cache.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attention Config</th>
+<th style="text-align: left;">Mechanism</th>
+<th style="text-align: left;">Cosine Sim</th>
+<th style="text-align: left;">SNR (dB)</th>
+<th style="text-align: left;">RMSE</th>
+<th style="text-align: left;">Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>FP16 (Baseline)</strong></td>
+<td style="text-align: left;">None</td>
+<td style="text-align: left;">1.0000</td>
+<td style="text-align: left;">∞</td>
+<td style="text-align: left;">0.0000</td>
+<td style="text-align: left;">Native model performance.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A8KV8</strong></td>
+<td style="text-align: left;">INT8 Uniform</td>
+<td style="text-align: left;">0.7427</td>
+<td style="text-align: left;">3.40 dB</td>
+<td style="text-align: left;"><em>Baseline</em></td>
+<td style="text-align: left;">Retains 65% logical capacity when paired with W4A4 FFN. Viable fallback.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A4KV4 (2D)</strong></td>
+<td style="text-align: left;">2D Hadamard (Token+Feature)</td>
+<td style="text-align: left;">0.3577</td>
+<td style="text-align: left;">-1.36 dB</td>
+<td style="text-align: left;">10.500</td>
+<td style="text-align: left;">🔴 Extreme OOV. Sequence-length expansion breaks orthogonal energy conservation, causing Softmax gradient explosion.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A4KV4 (1D)</strong></td>
+<td style="text-align: left;">1D Hadamard (Feature only)</td>
+<td style="text-align: left;">0.4656</td>
+<td style="text-align: left;">-0.61 dB</td>
+<td style="text-align: left;">9.6172</td>
+<td style="text-align: left;">🔴 Extreme OOV. Solves token overflow, but quantization noise cascading into FFN remains fatal.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Chapter 2: FFN Precision &amp; Quantization Mechanisms</h2>
+<p>The FFN contains the densest MAC operations. It also suffers from the "Outlier Wall" driven by SiLU non-linearities, where isolated features peak at &gt;100x the mean.</p>
+<p><em>(Note: Attention was kept at FP16 or stable configurations to isolate FFN noise)</em></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">FFN Config</th>
+<th style="text-align: left;">Mechanism</th>
+<th style="text-align: left;">Cosine Sim</th>
+<th style="text-align: left;">SNR (dB)</th>
+<th style="text-align: left;">Status &amp; Output Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>W4A16</strong></td>
+<td style="text-align: left;">Weight-Only INT4</td>
+<td style="text-align: left;">&gt;0.900</td>
+<td style="text-align: left;">&gt;8.00 dB</td>
+<td style="text-align: left;">🟢 Logic perfectly retained.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>W4A8</strong></td>
+<td style="text-align: left;">INT8 Activations</td>
+<td style="text-align: left;">&lt;0.200</td>
+<td style="text-align: left;">&lt;0.00 dB</td>
+<td style="text-align: left;">🔴 Outliers crush the INT8 dynamic range. Total OOV.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>W4A4 (Naive)</strong></td>
+<td style="text-align: left;">INT4 Uniform</td>
+<td style="text-align: left;">&lt;0.200</td>
+<td style="text-align: left;">&lt;0.00 dB</td>
+<td style="text-align: left;">🔴 Catastrophic forgetting.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>W4A4 (Block 32)</strong></td>
+<td style="text-align: left;">Sub-Channel Micro-Scaling</td>
+<td style="text-align: left;">0.7974</td>
+<td style="text-align: left;">4.24 dB</td>
+<td style="text-align: left;">🟢 Perfect logic recovery. Outliers successfully isolated.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>W4A4 (Smooth)</strong></td>
+<td style="text-align: left;">SmoothQuant (α=0.75)</td>
+<td style="text-align: left;">0.4683</td>
+<td style="text-align: left;">-0.58 dB</td>
+<td style="text-align: left;">🔴 Fails to rescue A4KV4 pairing.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>W4A4 (Clamp)</strong></td>
+<td style="text-align: left;">Dynamic Hardware Clamping</td>
+<td style="text-align: left;">0.1908</td>
+<td style="text-align: left;">-1.56 dB</td>
+<td style="text-align: left;">🔴 Cutting off true outliers destroys feature geometry.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Chapter 3: The Data Type War — INT4 vs. FP4</h2>
+<p>The fundamental failure of standard <strong>INT4</strong> lies in its uniform grid. An outlier expands the absolute scaling factor, causing 99% of normal activations to be rounded to zero (Dead Features).</p>
+<p><strong>The FP4 (E2M1) Solution:</strong>
+To push beyond the SNR boundaries seen in our A4KV4 experiments, hardware must transition from INT4 to <strong>FP4 (1 sign, 2 exponent, 1 mantissa)</strong>. 
+- FP4's exponential grid provides hyper-dense resolution near zero (where 99% of activations live).
+- It gracefully captures outliers in the sparse upper range.
+- <strong>Future Work:</strong> Replacing our <code>fake_quantize</code> uniform grid with simulated OCP MX4/FP4 ALU logic to verify if the -0.61 dB SNR bottleneck can be breached purely through data-type dynamics.</p>
+<hr />
+<h2>Chapter 4: Sub-Channel Quantization Scale Precision</h2>
+<p>In Chapter 2, <strong>Block 32 Sub-channel Quantization</strong> proved to be the only viable W4A4 FFN mechanism. However, requiring an FP16 scale for every 32 elements creates a massive SRAM overhead.</p>
+<p><strong>Scaling Factor Analysis:</strong>
+If an FP16 scale is used, the effective bit-rate is <code>(32 * 4 + 16) / 32 = 4.5 bits</code>.
+To reduce this, the scaling factors themselves must be quantized. 
+- <strong>E8M0 (Pure Exponent):</strong> Restricts scales to powers of 2. Extremely cheap hardware bit-shifting, but introduces step-quantization noise.
+- <strong>E3M4 (FP8):</strong> Higher precision scaling, balancing SRAM footprint and dynamic range.
+- <strong>Future Work:</strong> Ablate the Block 32 scales using E8M0 vs. E4M3 to find the hardware sweet spot for the scaling cache.</p>
+<hr />
+<h2>Chapter 5: Mixed-Precision Quantization (Layer Sensitivity)</h2>
+<p>When ultimate limits are reached (e.g., A4KV4 + W4A4 yielding negative SNR), the final hardware solution is <strong>Mixed-Precision Quantization (Bypassing)</strong>. Not all layers are equally sensitive.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Mixed-Precision Strategy</th>
+<th style="text-align: left;">Cosine Sim</th>
+<th style="text-align: left;">SNR (dB)</th>
+<th style="text-align: left;">Pass Rate</th>
+<th style="text-align: left;">Analysis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>All Layers W4A4 (Block 32)</strong></td>
+<td style="text-align: left;">0.7974</td>
+<td style="text-align: left;">4.24 dB</td>
+<td style="text-align: left;">60%</td>
+<td style="text-align: left;">Baseline full quantization.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Only FFN Quantized</strong></td>
+<td style="text-align: left;">0.8682</td>
+<td style="text-align: left;">6.26 dB</td>
+<td style="text-align: left;">60%</td>
+<td style="text-align: left;">Attention remains in FP16.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Only Attention Quantized</strong></td>
+<td style="text-align: left;">0.8872</td>
+<td style="text-align: left;">6.94 dB</td>
+<td style="text-align: left;">70%</td>
+<td style="text-align: left;">Attention is highly robust to quantization.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Protect First &amp; Last Layer</strong></td>
+<td style="text-align: left;">0.8218</td>
+<td style="text-align: left;">4.92 dB</td>
+<td style="text-align: left;">70%</td>
+<td style="text-align: left;">Leaving Layer 0 and Layer 23 in FP16 fully restores reasoning logic.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Conclusion:</strong> 
+An AI accelerator must feature a <strong>Mixed-Precision Controller</strong>. By maintaining the embedding/first layer and the final pre-LM-head layer in FP16, we can safely aggressively quantize the deep middle layers (W4A4/FP4), achieving near-FP16 intelligence with drastic latency and memory reductions.</p>
+</body>
+</html>

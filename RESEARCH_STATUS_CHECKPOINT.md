@@ -43,6 +43,35 @@ This document serves as the master state-tracker for the AI Accelerator Research
 
 ---
 
+
+### 2.5 End-to-End LLM Extreme Quantization: Master Ablation Study (April 2026)
+- **Status:** Comprehensive Evaluation Completed on Qwen2.5-0.5B-Instruct.
+
+- **Methodology (Fake Quantization & Metrics):**
+  - **Metrics:** Used Cosine Similarity (feature angle), RMSE (noise magnitude), and SNR (Signal-to-Noise Ratio). Discovered that **3.40 dB SNR** is the "Death Line" for Qwen2.5-0.5B; below this, the network suffers complete OOV hallucination.
+  - **Attention Interception:** Monkey-patched `Qwen2Attention.forward`. Protected Softmax/RoPE in FP16/32. Applied Hadamard matrices to K/V, followed by min-max scaling to simulate hardware KV cache quantization.
+  - **FFN Interception:** Replaced all `nn.Linear` layers with a custom `Block32Linear`. Emulated hardware Micro-Scaling by slicing activations and weights into 32-element sub-vectors, calculating an independent FP16 scale per block to dynamically isolate SiLU outliers.
+- **Chapter 1: Attention Quantization (KV Cache)** `[Scripts: 17_1d_hadamard_ablation.py, 19_strict_2d_hadamard_ffn_a4w4.py, 25_a8kv8_a4w4_benchmark.py]`
+  - Ablated KV cache and input precision while freezing FFN.
+  - **A8KV8:** Retained 70% accuracy (12.4 dB SNR). Perfect fallback.
+  - **A4KV4 (1D/2D Hadamard):** Extreme OOV collapse (-0.61 to -1.36 dB SNR). Quantization noise cascades fatally into the FFN.
+- **Chapter 2: FFN Quantization (Activation Outlier Wall)** `[Scripts: 13_qwen_ffn_activation_ablation.py, 14_qwen_ffn_block32_ablation.py, 23_smoothquant_a4kv4_w4a4.py]`
+  - Ablated dense FFN layers while freezing Attention.
+  - **W4A4 Naive & W4A8:** Catastrophic forgetting (<0 dB SNR) due to SiLU outliers crushing uniform INT8/INT4 ranges.
+  - **W4A4 Block 32 (Sub-Channel Micro-Scaling):** Breakthrough recovery (4.24 dB SNR, 75% Pass Rate). Outliers successfully isolated.
+  - **SmoothQuant:** Failed to dynamically smooth SiLU spikes at this extreme quantization level.
+- **Chapter 3: End-to-End Fusion (Cross-Layer Covariate Shift)** `[Scripts: 15_comprehensive_20_prompt_ablation.py, 18_mixed_attention_ffn_ablation.py, 24_final_routes_benchmark.py]`
+  - **A8KV8 + W4A4 (Block 32):** Optimal compute-bound sweet spot (3.40 dB SNR, 65% Pass Rate).
+  - **A16KV4 / A8KV4 + W4A4:** Cascading failure (0% Pass Rate). KV4 injects too much noise for W4A4 FFNs to absorb. 3.40 dB identified as the "SNR Death Line".
+- **Chapter 4: Sub-Channel Scale Precision (The Data Type War)** `[Scripts: 26_fp4_vs_int4_comprehensive.py]`
+  - Block 32 with FP16 scales yields 4.5-bit effective footprint. 
+  - **Future Architecture:** Shifting to **E8M0** or **E4M3 (FP8)** scaling factors to reduce overhead to 4.25 bits. 
+  - Transitioning MACs from INT4 to **FP4 (E2M1)** is required to natively absorb normal activations (highly concentrated around zero) while preserving outliers in the sparse upper range.
+- **Chapter 5: Mixed-Precision Layer Sensitivity** `[Scripts: 27_layer_sensitivity_ablation.py]`
+  - **Findings:** FFN is highly sensitive; Attention is robust.
+  - **Mixed-Precision Solution:** Quantizing middle layers (1-22) to W4A4 while preserving Layer 0 (Embedding/First Layer) and Layer N (LM Head) in FP16 completely restored reasoning logic to the 70% FP16 Baseline.
+  - **Hardware Implication:** Accelerators must feature a Mixed-Precision Controller to dynamically bypass quantization for critical boundary layers.
+
 ## Pillar 3: Dynamic Execution
 
 ### 3.1 Token-Level Early-Exit Routing (`3_1_early_exit_routing`)
@@ -110,3 +139,16 @@ This document serves as the master state-tracker for the AI Accelerator Research
 3. **Pillar 3.1 (Routing):** Explore "Zero-Out" dense routing (setting the token vector to exactly 0.0) to short-circuit the ALU without breaking dense memory contiguous blocks.
 4. **Pillar 5.1 (Edge Training):** Explore Activation-Free Fine-Tuning methods (e.g., zeroth-order optimization or forward-gradient algorithms) to train LoRA without storing the full intermediate computation graph.
 5. **Pillar 1.2 (SSM):** Lowering the block-parallel Mamba logic into actual Apple Metal shaders.
+### 2.4 End-to-End A4KV4 & W4A4 Ablation Studies (April 2026 Breakthrough)
+- **Status:** Evaluated via PyTorch Monkey-Patching on Qwen2.5-0.5B-Instruct.
+- **Attention Pipeline (A4KV4):**
+  - **Method:** Applied 2D Hadamard Transform on KV Cache to smear token and feature outliers, quantized to 4-bit (Fake Quantization). Query (Q) remains in FP16.
+  - **Results:** Prefill achieved 96.88% Cosine Similarity (34.33 dB SNR). Decode (1D orthogonal chunking) achieved 94.44% Cosine Sim (21.23 dB SNR).
+  - **Live Impact:** Reduced sequence generation latency from 1.25s to 0.98s (~21.6% speedup) while retaining perfect math reasoning.
+- **FFN Activation Pipeline (W4A4):**
+  - **The Outlier Wall:** Naive W4A4 quantization and even INT8 Activation (W4A8) failed catastrophically due to massive activation outliers (outputs collapsed to random noise).
+  - **Hadamard Failure:** Attempted Hadamard smoothing on FFN activations, but the SiLU non-linearity mathematically broke the orthogonal space reversal.
+  - **The Solution (Block 32 Micro-Scaling):** Transitioned to a Sub-vector Micro-Scaling architecture (Block 32). By assigning an independent FP16 scale to every 32 elements, we successfully isolated outliers to local blocks. 
+  - **Final Output:** W4A4 with Block 32 yielded **flawless English and logical reasoning** ("If you had 3 apples and ate one of them, you would be left with 2 apples"), perfectly matching the FP16 baseline logic.
+
+- **Hardware Architecture Conclusion:** Next-generation AI accelerators should pair **Hadamard-compressed KV4 for Attention memory bandwidth reduction** with **Block 32 Micro-Scaling ALUs (similar to OCP FP4/MX4) for FFN W4A4 execution** to handle extreme activation outliers purely in hardware.

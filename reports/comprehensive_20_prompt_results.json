@@ -1,0 +1,510 @@
+[
+  {
+    "config": "1. Baseline (FP16)",
+    "pass_rate": 70.0,
+    "latency": 8.476363897323608,
+    "logs": [
+      {
+        "q_id": 1,
+        "question": "If I have 5 apples and eat 2, how many are left?",
+        "output": "If you start with 5 apples and eat 2 of them, you would be left with:",
+        "pass": false
+      },
+      {
+        "q_id": 2,
+        "question": "What is 15 plus 27?",
+        "output": "The sum of 15 and 27 is:  \\[ 15 + 27",
+        "pass": false
+      },
+      {
+        "q_id": 3,
+        "question": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?",
+        "output": "Let's denote the cost of the ball as \\( B \\) dollars.  According to the problem,",
+        "pass": false
+      },
+      {
+        "q_id": 4,
+        "question": "Solve for x: 2x + 6 = 14",
+        "output": "To solve the equation \\(2x + 6 = 14\\), we will follow these",
+        "pass": true
+      },
+      {
+        "q_id": 5,
+        "question": "What is the capital of Japan?",
+        "output": "The capital of Japan is Tokyo.",
+        "pass": true
+      },
+      {
+        "q_id": 6,
+        "question": "Who wrote the play 'Hamlet'?",
+        "output": "The play \"Hamlet\" was written by William Shakespeare. He lived from 1564",
+        "pass": true
+      },
+      {
+        "q_id": 7,
+        "question": "What is the chemical symbol for water?",
+        "output": "The chemical symbol for water is H2O.",
+        "pass": true
+      },
+      {
+        "q_id": 8,
+        "question": "Which planet is known as the Red Planet?",
+        "output": "The planet known as the \"Red Planet\" is Mars. It was named after the Roman god of",
+        "pass": true
+      },
+      {
+        "q_id": 9,
+        "question": "In what year did the Titanic sink?",
+        "output": "The RMS Titanic sank on April 15, 1912, at 10",
+        "pass": true
+      },
+      {
+        "q_id": 10,
+        "question": "Write a Python function 'add' to add two numbers.",
+        "output": "Certainly! Below is a simple Python function named `add` that takes two arguments and returns their sum",
+        "pass": true
+      },
+      {
+        "q_id": 11,
+        "question": "What does HTML stand for?",
+        "output": "HTML stands for HyperText Markup Language. It is the standard markup language used to create web pages and",
+        "pass": true
+      },
+      {
+        "q_id": 12,
+        "question": "List three primary colors.",
+        "output": "Three primary colors are red, blue, and yellow. These colors are fundamental in the color spectrum and",
+        "pass": true
+      },
+      {
+        "q_id": 13,
+        "question": "Translate 'Hello, world' into French.",
+        "output": "Bonjour, le monde.",
+        "pass": true
+      },
+      {
+        "q_id": 14,
+        "question": "What is the opposite of the word 'hot'?",
+        "output": "The opposite of the word \"hot\" in English would be \"cold\".",
+        "pass": true
+      },
+      {
+        "q_id": 15,
+        "question": "What is 10 multiplied by 5?",
+        "output": "To solve the problem of multiplying 10 by 5, you simply add 10 to",
+        "pass": false
+      },
+      {
+        "q_id": 16,
+        "question": "If tomorrow is Tuesday, what day was yesterday?",
+        "output": "If tomorrow is Tuesday, then yesterday must have been Monday.",
+        "pass": false
+      },
+      {
+        "q_id": 17,
+        "question": "Name a large grey animal with a trunk.",
+        "output": "The large grey animal you're referring to is likely the African Elephant. Elephants are known for their",
+        "pass": true
+      },
+      {
+        "q_id": 18,
+        "question": "Is a tomato a fruit or a vegetable botanically?",
+        "output": "A tomato is classified as both a fruit and a vegetable in the botanical sense. Here's why:",
+        "pass": true
+      },
+      {
+        "q_id": 19,
+        "question": "How many continents are there on Earth?",
+        "output": "There are 5 major continents on Earth: Asia, Africa, North America, South America, and",
+        "pass": false
+      },
+      {
+        "q_id": 20,
+        "question": "Why is the sky blue? Explain in 3 words.",
+        "output": "The sky is blue because of the scattering of sunlight by tiny particles in the Earth's atmosphere. This",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "config": "2. A4KV4 Only (Attention Hadamard)",
+    "pass_rate": 0.0,
+    "latency": 11.878509759902954,
+    "logs": [
+      {
+        "q_id": 1,
+        "question": "If I have 5 apples and eat 2, how many are left?",
+        "output": "SuperAm anelinearn twoascusokeres\u4e00\u65f6n em. CaroonsteoOneeveoo",
+        "pass": false
+      },
+      {
+        "q_id": 2,
+        "question": "What is 15 plus 27?",
+        "output": "\\ for emossoo.  Assistantie. Postimesoonoonessuild,ev Ober Evectors,",
+        "pass": false
+      },
+      {
+        "q_id": 3,
+        "question": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?",
+        "output": "\\nose 1ettOoo ilaotelavou1t = evascus,evoteascus.",
+        "pass": false
+      },
+      {
+        "q_id": 4,
+        "question": "Solve for x: 2x + 6 = 14",
+        "output": "E+89move interascus Cir ElenaorsOallerooetterboldsychOOesigroup",
+        "pass": false
+      },
+      {
+        "q_id": 5,
+        "question": "What is the capital of Japan?",
+        "output": ".\"</o emore.   fteroo allby thee,evah. P Cirking,evectors",
+        "pass": false
+      },
+      {
+        "q_id": 6,
+        "question": "Who wrote the play 'Hamlet'?",
+        "output": "oldersiewerseyoubyfammonen-someeltmore fl (fivei fouranni",
+        "pass": false
+      },
+      {
+        "q_id": 7,
+        "question": "What is the chemical symbol for water?",
+        "output": "Assistantoreking emersionie.   1.\\(shalAmes Cir0_,o",
+        "pass": false
+      },
+      {
+        "q_id": 8,
+        "question": "Which planet is known as the Red Planet?",
+        "output": "1 (AS-2ieFurOneurseVehiclesGoneascus Cirte.viewDidLoad/FI",
+        "pass": false
+      },
+      {
+        "q_id": 9,
+        "question": "In what year did the Titanic sink?",
+        "output": "\u65b0\u4e16\u7eaa. * We\u7ebdogtheroo.   ernetOnieolins\u6570\u636e\u663e\u793a em Olteone",
+        "pass": false
+      },
+      {
+        "q_id": 10,
+        "question": "Write a Python function 'add' to add two numbers.",
+        "output": "nature red S\uad6c theshalkingcasteroonutorpe\u6570\u636e\u663e\u793a \ufffd\ufffdoemectorsinaster,",
+        "pass": false
+      },
+      {
+        "q_id": 11,
+        "question": "What does HTML stand for?",
+        "output": "an, (And(1Aisesou.  1\uad6cOascusetteking\u1eef,\\",
+        "pass": false
+      },
+      {
+        "q_id": 12,
+        "question": "List three primary colors.",
+        "output": "To Eshaloroon) **B0.ots ters-ooieullengsteringte",
+        "pass": false
+      },
+      {
+        "q_id": 13,
+        "question": "Translate 'Hello, world' into French.",
+        "output": "(1sizing \ufffdolex (n00.OL5or.00.",
+        "pass": false
+      },
+      {
+        "q_id": 14,
+        "question": "What is the opposite of the word 'hot'?",
+        "output": "\\,\\, oexontooeveO\u6570\u636e\u663e\u793aoinsltOut_otel,ev.oonore",
+        "pass": false
+      },
+      {
+        "q_id": 15,
+        "question": "What is 10 multiplied by 5?",
+        "output": "\\otsOuttetoo  Thesou,evok enossemotoutimesioftero",
+        "pass": false
+      },
+      {
+        "q_id": 16,
+        "question": "If tomorrow is Tuesday, what day was yesterday?",
+        "output": "C\u7094obrettooieomIGoo. 0\u0635\u062d\u0627\u0628otelAmidOn emmsone",
+        "pass": false
+      },
+      {
+        "q_id": 17,
+        "question": "Name a large grey animal with a trunk.",
+        "output": "eon anakevaolex.viewDidLoadascusflo zeroomoonau\u7094On uurowinsom",
+        "pass": false
+      },
+      {
+        "q_id": 18,
+        "question": "Is a tomato a fruit or a vegetable botanically?",
+        "output": "02ooeveresoe infodysode\u7094ero\u84bfiNavorkingsenoughib",
+        "pass": false
+      },
+      {
+        "q_id": 19,
+        "question": "How many continents are there on Earth?",
+        "output": "9 Cirkingtronamnoemuleor,evahethammer.0inabgivou",
+        "pass": false
+      },
+      {
+        "q_id": 20,
+        "question": "Why is the sky blue? Explain in 3 words.",
+        "output": "00000()\uad6coookingoo.  1ascusooOoftGacter,ev",
+        "pass": false
+      }
+    ]
+  },
+  {
+    "config": "3. W4A4 Only (FFN Block32)",
+    "pass_rate": 75.0,
+    "latency": 95.67709493637085,
+    "logs": [
+      {
+        "q_id": 1,
+        "question": "If I have 5 apples and eat 2, how many are left?",
+        "output": "To answer the question about apples you ate, we need to consider what happens when you consume an apple",
+        "pass": false
+      },
+      {
+        "q_id": 2,
+        "question": "What is 15 plus 27?",
+        "output": "The sum of 15 and 27 is 42.",
+        "pass": true
+      },
+      {
+        "q_id": 3,
+        "question": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?",
+        "output": "To find out how much the ball costs, we can use the following steps:  Let's denote:",
+        "pass": false
+      },
+      {
+        "q_id": 4,
+        "question": "Solve for x: 2x + 6 = 14",
+        "output": "To find the value of \\( x \\) in this equation, we need to isolate it on one",
+        "pass": false
+      },
+      {
+        "q_id": 5,
+        "question": "What is the capital of Japan?",
+        "output": "The capital of Japan is Tokyo. It is known for its modern architecture and vibrant culture, but it",
+        "pass": true
+      },
+      {
+        "q_id": 6,
+        "question": "Who wrote the play 'Hamlet'?",
+        "output": "The famous play \"Hamlet\" was written by William Shakespeare, who lived from 156",
+        "pass": true
+      },
+      {
+        "q_id": 7,
+        "question": "What is the chemical symbol for water?",
+        "output": "The chemical symbol for water (H2O) represents the formula of two hydrogen atoms bonded to one",
+        "pass": true
+      },
+      {
+        "q_id": 8,
+        "question": "Which planet is known as the Red Planet?",
+        "output": "The term \"Red Planet\" refers to Mars in its original title of Earth-Mars system. The",
+        "pass": true
+      },
+      {
+        "q_id": 9,
+        "question": "In what year did the Titanic sink?",
+        "output": "The Titanic sank on April 15, 1912, and it was likely that",
+        "pass": true
+      },
+      {
+        "q_id": 10,
+        "question": "Write a Python function 'add' to add two numbers.",
+        "output": "Sure! Below is the Python code for adding two numbers:  ```python def add(x, y",
+        "pass": true
+      },
+      {
+        "q_id": 11,
+        "question": "What does HTML stand for?",
+        "output": "HTML stands for Hypertext Markup Language, which is the standard markup language used to create and structure the",
+        "pass": true
+      },
+      {
+        "q_id": 12,
+        "question": "List three primary colors.",
+        "output": "Three primary colors are red, blue, and yellow. These colors are fundamental in the color spectrum and",
+        "pass": true
+      },
+      {
+        "q_id": 13,
+        "question": "Translate 'Hello, world' into French.",
+        "output": "\"Hello, world\" can be translated to the French as \"Salut, monde\". The full",
+        "pass": true
+      },
+      {
+        "q_id": 14,
+        "question": "What is the opposite of the word 'hot'?",
+        "output": "The opposite of \"cold\" is \"temperate,\" which means neither hot nor cold but rather moderate",
+        "pass": true
+      },
+      {
+        "q_id": 15,
+        "question": "What is 10 multiplied by 5?",
+        "output": "The product of 10 and 5 is 50.",
+        "pass": true
+      },
+      {
+        "q_id": 16,
+        "question": "If tomorrow is Tuesday, what day was yesterday?",
+        "output": "To determine what day it was yesterday given that today is Tuesday and the current date is Thursday, you",
+        "pass": false
+      },
+      {
+        "q_id": 17,
+        "question": "Name a large grey animal with a trunk.",
+        "output": "A large, grey elephant is one of the most famous and iconic animals in the world. Elephants",
+        "pass": true
+      },
+      {
+        "q_id": 18,
+        "question": "Is a tomato a fruit or a vegetable botanically?",
+        "output": "A tomato is classified as a fruit because it is a single seed-bearing structure that contains seeds and an",
+        "pass": true
+      },
+      {
+        "q_id": 19,
+        "question": "How many continents are there on Earth?",
+        "output": "There are 14 continents on Earth: Africa, Antarctica, Asia, Australia, Europe, North",
+        "pass": false
+      },
+      {
+        "q_id": 20,
+        "question": "Why is the sky blue? Explain in 3 words.",
+        "output": "The color of the sky comes from our eyes, which have pigments that reflect light and shade to",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "config": "4. All 4-bit (A4KV4 + W4A4_Block32)",
+    "pass_rate": 0.0,
+    "latency": 98.52454113960266,
+    "logs": [
+      {
+        "q_id": 1,
+        "question": "If I have 5 apples and eat 2, how many are left?",
+        "output": "0eoin (,1eorOm's is am.OI.Editor,urseOp.,et",
+        "pass": false
+      },
+      {
+        "q_id": 2,
+        "question": "What is 15 plus 27?",
+        "output": "9. The A for the.OPER essages \u8bde \u626bster.OTE.?0.alignment",
+        "pass": false
+      },
+      {
+        "q_id": 3,
+        "question": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?",
+        "output": "soles,\u8c03\u5242gods otr is (,ar aore.  return.eveSeorO",
+        "pass": false
+      },
+      {
+        "q_id": 4,
+        "question": "Solve for x: 2x + 6 = 14",
+        "output": "60_ever ofeor Ant\u062c\u0631 rake. ( EOn urname 3\u8c03\u5242 andeam",
+        "pass": false
+      },
+      {
+        "q_id": 5,
+        "question": "What is the capital of Japan?",
+        "output": "auor 0eor (\u8c03\u5242solesovapoles1(ulanmerian,\u062c\u0631,uset",
+        "pass": false
+      },
+      {
+        "q_id": 6,
+        "question": "Who wrote the play 'Hamlet'?",
+        "output": "TotaluntersteeroThree milmut.Euler.      =suiteetole  The utooo1",
+        "pass": false
+      },
+      {
+        "q_id": 7,
+        "question": "What is the chemical symbol for water?",
+        "output": "lox1 rakeo\u062c\u0631\u7b94PickstOOdooSal.filesoseor\u8c03\u5242 (serterovoo",
+        "pass": false
+      },
+      {
+        "q_id": 8,
+        "question": "Which planet is known as the Red Planet?",
+        "output": "Assistanteam rakeeor\u7b94ectorssoles)fromabligan an Shock\u062c\u0631.ulan 1 hand",
+        "pass": false
+      },
+      {
+        "q_id": 9,
+        "question": "In what year did the Titanic sink?",
+        "output": "1\u062c\u0631 (serter is for emolistmer. useton$eve.e,uno,ev",
+        "pass": false
+      },
+      {
+        "q_id": 10,
+        "question": "Write a Python function 'add' to add two numbers.",
+        "output": "3stoS\u062c\u0631\u8bf2aeormon.alignment.*F\u8c03\u5242[     \u5be1ordes =\u0441\u0438\u043b\u044cO",
+        "pass": false
+      },
+      {
+        "q_id": 11,
+        "question": "What does HTML stand for?",
+        "output": "\u8c03\u5242or theder, rake sar subjecteor codelesos Bordersido\u062c\u0631 \u00e9quip\u00e9omeam\u5f15\u529b",
+        "pass": false
+      },
+      {
+        "q_id": 12,
+        "question": "List three primary colors.",
+        "output": "sou](urseAppeor.alignment] andoes  **0. ertors\u062c\u0631 is",
+        "pass": false
+      },
+      {
+        "q_id": 13,
+        "question": "Translate 'Hello, world' into French.",
+        "output": "0rHiale One, Simmedo9Autythers =ACA\u8c03\u5242eorpeIdoo",
+        "pass": false
+      },
+      {
+        "q_id": 14,
+        "question": "What is the opposite of the word 'hot'?",
+        "output": "\"solesous t andeor.alignment, Off\ufffd  see \u00e9quip\u00e91\u062c\u0631 ( iscas  em",
+        "pass": false
+      },
+      {
+        "q_id": 15,
+        "question": "What is 10 multiplied by 5?",
+        "output": "Feorokseve.ASulan. Ampl O \u00e9quip\u00e9 lash the\u8c03\u5242vis te\u062c\u0631wea",
+        "pass": false
+      },
+      {
+        "q_id": 16,
+        "question": "If tomorrow is Tuesday, what day was yesterday?",
+        "output": "feweor\u8c03\u52420\ud83c\udffb\u7b94 pe-snedsotp@examplesutor,EMoo 1\u062c\u0631,",
+        "pass": false
+      },
+      {
+        "q_id": 17,
+        "question": "Name a large grey animal with a trunk.",
+        "output": "K\u062c\u0631. [oeoropleoo\u6ce1\u8c46esout \u00e9quip\u00e9 OE  Action, no0e",
+        "pass": false
+      },
+      {
+        "q_id": 18,
+        "question": "Is a tomato a fruit or a vegetable botanically?",
+        "output": "For rake.alignmented\u8c03\u5242unitstopeeor\u062c\u0631 \u00e9quip\u00e9 op action the S,or is:",
+        "pass": false
+      },
+      {
+        "q_id": 19,
+        "question": "How many continents are there on Earth?",
+        "output": "head thesteeor\u0435\u0435nO\u062c\u0631ovTranslatefamedoo1arveral (serter\u8c03\u5242-efore",
+        "pass": false
+      },
+      {
+        "q_id": 20,
+        "question": "Why is the sky blue? Explain in 3 words.",
+        "output": "forurselessinseor\u00fcyor, suit\u8c03\u5242* = jam, $ eforeooo.definitions",
+        "pass": false
+      }
+    ]
+  }
+]

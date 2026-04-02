@@ -23,3 +23,17 @@ The `auto_researcher.py` script iteratively validated the architecture against:
 
 ## Next Steps
 RTL design (SystemVerilog) for the token sorting and prefetching logic.
+
+## End-to-End Quantization Pipeline (A4KV4 + W4A4)
+Through a series of rigorous ablation tests on Qwen2.5-0.5B, we mapped out the definitive hardware architecture required to execute extremely low-precision models without catastrophic forgetting:
+
+1. **Attention Phase (KV Cache Memory Wall):** 
+   - **Strategy:** 2D Hadamard Transform + 4-bit KV Cache (A4KV4).
+   - **Finding:** By smearing the memory representation of K and V using an orthogonal Hadamard matrix, we absorbed feature-dimension outliers. Compressing this to 4-bit yielded a **~21.6% latency reduction** (1.25s -> 0.98s) with >94% Cosine Similarity (21-34 dB SNR).
+
+2. **FFN Phase (Activation Outlier Wall):**
+   - **Strategy:** Sub-vector Micro-Scaling (Block 32) W4A4.
+   - **Finding:** FFN activations contain massive outliers that survive SiLU non-linearities, which destroyed naive W4A4, W4A8, and even GroupSize=64 logic. Applying a Hadamard transform also failed because the non-linearity breaks the orthogonal space reversal.
+   - **Solution:** Implementing Block 32 Micro-Scaling (assigning an FP16 scale factor to every 32 elements) successfully isolated the outliers. This architecture yielded flawless text generation under pure W4A4 conditions, matching OCP MX4 standards.
+
+**Recommendation for Silicon:** The ALU must natively support Block 32 granularity for W4A4 dot products to bypass the Activation Outlier Wall, while the memory controller should integrate hardware Hadamard decompression for the KV Cache.

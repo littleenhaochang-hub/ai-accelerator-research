@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "question": "What is the capital of France?",
+    "baseline_fp16": "The capital of France is Paris.",
+    "baseline_latency": 0.47513794898986816,
+    "a4kv4_quant": "The capital of France is Paris.",
+    "a4kv4_latency": 0.40386725664138795,
+    "match": true
+  },
+  {
+    "id": 2,
+    "question": "Solve this equation: 3x + 5 = 20. What is x?",
+    "baseline_fp16": "To solve the equation \\(3x + 5 = 20\\), we need to isolate the variable \\(x\\) on one side of the equation. Here's how you can do it step by step:\n\n1. **Subtract 5",
+    "baseline_latency": 1.5425457954406738,
+    "a4kv4_quant": "To solve the equation \\(3x + 5 = 20\\), we need to isolate the variable \\(x\\) on one side of the equation. Here's how you can do it step by step:\n\n1. **Subtract 5",
+    "a4kv4_latency": 1.3111639261245727,
+    "match": true
+  },
+  {
+    "id": 3,
+    "question": "Explain the theory of relativity in one sentence.",
+    "baseline_fp16": "The theory of relativity is a set of two fundamental physical laws that describe the relationship between mass and energy, as well as the motion of objects in the universe. These laws were developed by Albert Einstein and have since been confirmed through numerous experiments and observations",
+    "baseline_latency": 0.9079031944274902,
+    "a4kv4_quant": "The theory of relativity is a set of two fundamental physical laws that describe the relationship between mass and energy, as well as the motion of objects in the universe. These laws were developed by Albert Einstein and have since been confirmed through numerous experiments and observations",
+    "a4kv4_latency": 0.7717177152633666,
+    "match": true
+  },
+  {
+    "id": 4,
+    "question": "Write a Python function to calculate the Fibonacci sequence.",
+    "baseline_fp16": "Certainly! Here's an example of a Python function that calculates the Fibonacci sequence up to a given number:\n\n```python\ndef fibonacci(n):\n    \"\"\"\n    Calculate the nth Fibonacci number.\n\n    Parameters:\n    n (int): The position in the Fibonacci",
+    "baseline_latency": 0.8572866916656494,
+    "a4kv4_quant": "Certainly! Here's an example of a Python function that calculates the Fibonacci sequence up to a given number:\n\n```python\ndef fibonacci(n):\n    \"\"\"\n    Calculate the nth Fibonacci number.\n\n    Parameters:\n    n (int): The position in the Fibonacci",
+    "a4kv4_latency": 0.728693687915802,
+    "match": true
+  },
+  {
+    "id": 5,
+    "question": "What are the main differences between Python and C++?",
+    "baseline_fp16": "Python and C++ are both popular programming languages, but they have some key differences:\n\n1. Syntax: Python is an interpreted language, while C++ is a compiled language. This means that Python code can be executed directly on a computer without needing to",
+    "baseline_latency": 0.8360741138458252,
+    "a4kv4_quant": "Python and C++ are both popular programming languages, but they have some key differences:\n\n1. Syntax: Python is an interpreted language, while C++ is a compiled language. This means that Python code can be executed directly on a computer without needing to",
+    "a4kv4_latency": 0.7106629967689514,
+    "match": true
+  },
+  {
+    "id": 6,
+    "question": "Who wrote the play 'Romeo and Juliet'?",
+    "baseline_fp16": "The play \"Romeo and Juliet\" was written by William Shakespeare.",
+    "baseline_latency": 0.27026987075805664,
+    "a4kv4_quant": "The play \"Romeo and Juliet\" was written by William Shakespeare.",
+    "a4kv4_latency": 0.22972939014434815,
+    "match": true
+  },
+  {
+    "id": 7,
+    "question": "If I have 3 apples and eat 1, how many are left?",
+    "baseline_fp16": "If you start with 3 apples and eat 1 of them, you would be left with:\n\n\\[ 3 - 1 = 2 \\]\n\nSo, there are 2 apples left.",
+    "baseline_latency": 0.6762323379516602,
+    "a4kv4_quant": "If you start with 3 apples and eat 1 of them, you would be left with:\n\n\\[ 3 - 1 = 2 \\]\n\nSo, there are 2 apples left.",
+    "a4kv4_latency": 0.5747974872589111,
+    "match": true
+  },
+  {
+    "id": 8,
+    "question": "Translate 'Hello, how are you?' to French.",
+    "baseline_fp16": "The translation of \"Hello, how are you?\" to French is \"Bonjour, comment \u00e7a va ?\"",
+    "baseline_latency": 0.37213587760925293,
+    "a4kv4_quant": "The translation of \"Hello, how are you?\" to French is \"Bonjour, comment \u00e7a va ?\"",
+    "a4kv4_latency": 0.31631549596786496,
+    "match": true
+  },
+  {
+    "id": 9,
+    "question": "Summarize the plot of the movie 'The Matrix' in two sentences.",
+    "baseline_fp16": "\"The Matrix\" is a science fiction film that follows the story of Neo, a hacker who discovers he has been implanted with a computer program called \"the Matrix.\" As he navigates through the world of the Matrix, he must learn to control his emotions",
+    "baseline_latency": 0.8344120979309082,
+    "a4kv4_quant": "\"The Matrix\" is a science fiction film that follows the story of Neo, a hacker who discovers he has been implanted with a computer program called \"the Matrix.\" As he navigates through the world of the Matrix, he must learn to control his emotions",
+    "a4kv4_latency": 0.7092502832412719,
+    "match": true
+  },
+  {
+    "id": 10,
+    "question": "What is the speed of light in a vacuum?",
+    "baseline_fp16": "The speed of light in a vacuum is approximately 299,792 kilometers per second (km/s). This value has been determined through experiments and observations over many years by scientists around the world.",
+    "baseline_latency": 0.7071688175201416,
+    "a4kv4_quant": "The speed of light in a vacuum is approximately 299,792 kilometers per second (km/s). This value has been determined through experiments and observations over many years by scientists around the world.",
+    "a4kv4_latency": 0.6010934948921204,
+    "match": true
+  }
+]
