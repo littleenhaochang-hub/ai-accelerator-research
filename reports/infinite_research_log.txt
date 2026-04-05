@@ -1,0 +1,9 @@
+[2026-04-05 15:02:21] Iteration 1 | Gradient-Free QAT using Evolutionary Algorithms in 4-bit Space (Dynamic Alpha)
+    SNR: 2.95 dB | Acc: 76.7%
+
+[2026-04-05 15:02:26] Iteration 2 | Stochastic Rounding with Entropy Maximization for A4W4 (G=64)
+    SNR: 3.35 dB | Acc: 70.8%
+
+[2026-04-05 15:02:32] Iteration 3 | Log-Normal Distribution Fitting for SiLU Outlier Prediction (Dynamic Alpha)
+    SNR: 9.99 dB | Acc: 16.5%
+

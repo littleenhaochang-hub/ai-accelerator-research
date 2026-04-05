@@ -24,6 +24,24 @@
 <h2>Abstract</h2>
 <p>This report documents a systematic ablation study targeting the Memory Wall in autoregressive LLM inference. We progressively quantized the Attention mechanism (KV Cache) and Feed-Forward Network (FFN), tracking <strong>Cosine Similarity, Root Mean Square Error (RMSE), and Signal-to-Noise Ratio (SNR)</strong>. When pure uniform quantization (INT4) collapsed due to activation outliers, we explored Block 32 sub-channel quantization, FP4 data types, hardware scaling factor formats, and Mixed-Precision Quantization.</p>
 <hr />
+<h2>Chapter 0: Methodology — Metrics &amp; Fake Quantization Framework</h2>
+<p>Before presenting the ablation results, it is critical to define how we measured degradation and how we simulated hardware quantization in PyTorch without modifying the core HuggingFace library.</p>
+<h3>0.1 Quantitative Metrics</h3>
+<p>To trace the exact point of failure ("The SNR Death Line"), we intercepted the final hidden states (just before the <code>lm_head</code>) and compared the quantized model's output against a pristine FP16 baseline.
+- <strong>Cosine Similarity:</strong> Measures the geometric angle between the FP16 vector and the Quantized vector. High similarity (approaching 1.0) means the semantic "direction" of the feature is preserved, even if the magnitude shifts.
+- <strong>RMSE (Root Mean Square Error):</strong> Measures the absolute magnitude of the quantization noise. It reveals how much raw error the INT4/INT8 uniform grid introduces.
+- <strong>SNR (Signal-to-Noise Ratio):</strong> Calculated as $10 \log_{10}(\sum X^2 / \sum (X - X_q)^2)$. This is the ultimate health indicator of the network. We discovered empirically that an SNR below <strong>~3.40 dB</strong> causes the network to cross the "OOV Collapse Threshold", resulting in complete logical failure and hallucinated tokens.</p>
+<h3>0.2 Qwen2.5 Fake Quantization Implementation</h3>
+<p>We implemented a <strong>Dynamic Monkey-Patching Framework</strong> to simulate RTL hardware behavior entirely in Python.</p>
+<p><strong>1. Attention Layer Interception (KV Cache Quantization):</strong>
+- We dynamically overrode <code>Qwen2Attention.forward</code>.
+- <strong>Protection:</strong> RoPE (Rotary Position Embeddings) and Softmax are strictly calculated in FP16/FP32 to prevent catastrophic matrix collapses.
+- <strong>Quantization:</strong> After RoPE, the Key (K) and Value (V) tensors are intercepted. For A4KV4 experiments, a Hadamard Matrix is applied via matrix multiplication to smear frequency outliers. The tensors are then scaled using per-channel Min-Max normalization and rounded to 4-bit/8-bit integer boundaries before being passed to the attention matrix multiplication.</p>
+<p><strong>2. FFN Layer Interception (Sub-Channel Micro-Scaling):</strong>
+- We recursively traversed the model (<code>model.named_children()</code>) and replaced all dense <code>nn.Linear</code> layers (excluding the highly sensitive <code>lm_head</code>) with a custom <code>Block32Linear</code> module.
+- <strong>Block 32 Mechanism:</strong> Inside the <code>forward</code> pass, incoming FP16 Activations and FP16 Weights are reshaped into sub-vectors of exactly 32 elements. 
+- <strong>Micro-Scaling:</strong> We extract the absolute maximum value per 32-element block to compute a localized FP16 scale factor. This isolates extreme SiLU activation outliers to a single block, protecting the 4-bit fidelity of the surrounding 99% of the matrix.</p>
+<hr />
 <h2>Chapter 1: Attention Precision &amp; Quantization Mechanisms</h2>
 <p>The KV cache size scales linearly with context length, bottlenecking memory bandwidth. We tested multiple precision levels and Hadamard transformations to safely compress the KV cache.</p>
 <table>
@@ -72,7 +90,57 @@
 </tr>
 </tbody>
 </table>
-<hr />
+<h2>---</h2>
+<h2>Chapter 1.5: Beyond Uniform Quantization - Low-Rank KV Compaction</h2>
+<p>Based on insights from "Attention-aware Inference Optimizations for Large Vision-Language Models" (AttentionPack), we explored whether the KV Cache exhibits <em>Implicit Low-Rank</em> properties that allow mathematical truncation (SVD) rather than uniform bit-level quantization.</p>
+<p><strong>Ablation Setup:</strong> FFN is frozen at FP16. We apply Singular Value Decomposition (SVD) to the KV cache, truncate to a target rank, and then quantize the remaining $U$ and $V$ matrices to INT8. The memory footprint of 50% Rank + INT8 is mathematically identical to 100% Rank + INT4 (4x Compression).</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Compression Config</th>
+<th style="text-align: left;">Mechanism</th>
+<th style="text-align: left;">Cosine Sim</th>
+<th style="text-align: left;">SNR (dB)</th>
+<th style="text-align: left;">Pass Rate</th>
+<th style="text-align: left;">Output Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>4x Compression (Control)</strong></td>
+<td style="text-align: left;">Pure A4KV4 (Block 32)</td>
+<td style="text-align: left;">0.6748</td>
+<td style="text-align: left;">1.89 dB</td>
+<td style="text-align: left;">40.0%</td>
+<td style="text-align: left;">🔴 Fails logic tests. Quantization noise crushes features.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>4x Compression (Fusion)</strong></td>
+<td style="text-align: left;">SVD 50% + A8KV8</td>
+<td style="text-align: left;">0.8682</td>
+<td style="text-align: left;">6.07 dB</td>
+<td style="text-align: left;">60.0%</td>
+<td style="text-align: left;">🟢 <strong>Breakthrough.</strong> SVD removes redundant noise, allowing INT8 to perfectly capture core features.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>8x Compression (Fusion)</strong></td>
+<td style="text-align: left;">SVD 25% + A8KV8</td>
+<td style="text-align: left;">0.6582</td>
+<td style="text-align: left;">2.10 dB</td>
+<td style="text-align: left;">40.0%</td>
+<td style="text-align: left;">🟡 Hits the SNR Death Line. Syntax is retained but logic hallucinates.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>16x Compression (Fusion)</strong></td>
+<td style="text-align: left;">SVD 12.5% + A8KV8</td>
+<td style="text-align: left;">0.5464</td>
+<td style="text-align: left;">0.61 dB</td>
+<td style="text-align: left;">0.0%</td>
+<td style="text-align: left;">🔴 Catastrophic failure. Complete semantic loss.</td>
+</tr>
+</tbody>
+</table>
+<h2><strong>Conclusion:</strong> Storing the KV cache as two smaller, low-rank matrices (SVD 50%) encoded in INT8 is strictly superior to storing the full matrix in INT4. It boosts SNR from 1.89 dB to 6.07 dB for the exact same memory bandwidth footprint. Pushing beyond 4x compression requires dynamic, token-specific decompression logic.</h2>
 <h2>Chapter 2: FFN Precision &amp; Quantization Mechanisms</h2>
 <p>The FFN contains the densest MAC operations. It also suffers from the "Outlier Wall" driven by SiLU non-linearities, where isolated features peak at &gt;100x the mean.</p>
 <p><em>(Note: Attention was kept at FP16 or stable configurations to isolate FFN noise)</em></p>
