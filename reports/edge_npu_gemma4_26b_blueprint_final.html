@@ -51,8 +51,12 @@
 </h2>
 <p>既然 128 個專家無法全部放進 DRAM，我們必須依賴「齊夫定律 (Zipf's Law)」來建構 <strong>逐層最少使用常駐 (Layer-wise LFU Pinning)</strong> 策略。</p>
 
+<h3>實驗方法：全層次 Router 側寫與多元 Prompt 測試</h3>
+<p>為了精準量化長尾效應，我們實作了一套 <strong>Time-Over-Space O(1) Memory Profiler</strong>（時間換空間側寫器），針對 Gemma-4 26B 完整的 30 層 Router 進行了全域分析。測試數據集抽樣了 <strong>1,000 筆多樣化的 Prompt</strong>（涵蓋 Wikipedia 知識檢索、Code 程式碼生成、以及 Chat 日常對話指令），總計生成並追蹤了約 <strong>150,000 個 Tokens</strong> 的物理路由軌跡。</p>
+<p>透過逐層攔截每一個 Token 的 Top-8 路由選擇並累加命中次數，我們成功將這些真實推論數據轉化為下方的熱區圖 (Heatmap) 與累積命中率 (CDF) 曲線：</p>
+
 <h3>CDF 累積命中率分佈與路由熱區 (Time-Over-Space Profiling)</h3>
-<p>語言與邏輯任務呼叫特定專家的頻率呈現極端長尾分佈。下方的 CDF 曲線展示了「常駐在記憶體中的專家數量」與「命中率」的非線性關係。可以看到曲線在前期極為陡峭，這意味著我們只需付出少量的 DRAM 空間，就能換取巨大的 Hit Rate 收益。</p>
+<p>下方的 CDF 曲線展示了「常駐在記憶體中的專家數量」與「命中率」的非線性關係。可以看到曲線在前期極為陡峭，這意味著我們只需付出少量的 DRAM 空間，就能換取巨大的 Hit Rate 收益。</p>
 <div style="text-align: center; margin: 20px 0;">
     <img src="gemma4_expert_cdf.png" alt="Gemma-4 Expert CDF Plot" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;">
     <p style="font-size: 0.9em; color: #718096; text-align: center; margin-bottom: 30px;">圖 1：專家快取數量與累積命中率 (CDF)</p>
