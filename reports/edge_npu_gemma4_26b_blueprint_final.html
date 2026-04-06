@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gemma-4 26B A4B (MoE) Edge Deployment Blueprint</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1a202c; max-width: 1000px; margin: 0 auto; padding: 40px; background-color: #f7fafc; }
+    .container { background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    h1 { color: #2b6cb0; border-bottom: 3px solid #ebf8ff; padding-bottom: 15px; font-size: 2.1em; }
+    h2 { color: #2d3748; margin-top: 40px; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; font-size: 1.5em; display: flex; justify-content: space-between; align-items: baseline; }
+    .source-link { font-size: 0.55em; color: #d53f8c; text-decoration: none; border: 1px solid #d53f8c; padding: 3px 8px; border-radius: 4px; vertical-align: middle; background-color: #fff5f8; font-weight: bold; }
+    .source-link:hover { background-color: #d53f8c; color: #ffffff; }
+    h3 { color: #4a5568; margin-top: 25px; }
+    p, li { font-size: 1.05em; color: #4a5568; text-align: justify; }
+    strong { color: #2d3748; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
+    th { background-color: #ebf8ff; color: #2b6cb0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85em; }
+    tr:nth-child(even) { background-color: #faf8f8; }
+    code { background-color: #edf2f7; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; color: #d53f8c; }
+    pre { background-color: #1a202c; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.9em; text-align: left; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>終極流片規格書：Gemma-4 26B A4B (MoE) 邊緣部署與硬體協同藍圖</h1>
+<p><strong>Target:</strong> Edge Devices (8GB~16GB LPDDR5x / UFS 4.0 Flash)<br>
+<strong>Date:</strong> April 2026<br>
+<strong>Core Optimizations:</strong> W4A4 Quantization, Zipfian LFU Caching, Time-Over-Space O(1) Memory Profiling.</p>
+<hr />
+
+<h2>
+    <span>🚀 一、 Gemma-4 26B A4B 真實物理微觀拆解</span>
+    <a class="source-link" href="../02_gemma_vocab_compression.py" target="_blank">[Source Code: Vocab / W4A4 Calc]</a>
+</h2>
+<p>要讓一個高達 25.2B 參數的巨獸在 8GB 手機上流暢執行，我們必須針對 Gemma-4 的官方架構 (<code>30 Layers</code>, <code>128 Experts</code>, <code>Top-8 Routing</code>, <code>1 Shared Expert</code>) 進行最嚴酷的物理重構。</p>
+<h3>1. W4A4 極限量化下的實體記憶體佔用 (0.5 Bytes / Param)</h3>
+<ul>
+<li><strong>總儲存體積 (Flash Storage Footprint):</strong> 約 <strong>12.6 GB</strong></li>
+<li><strong>活躍參數體積 (Active Read per Token):</strong> 約 <strong>1.9 GB</strong> (包含 Router 喚醒的 Active 4B Parameters)</li>
+<li><strong>模型分區與 LFU 記憶體策略:</strong></li>
+<li><strong>[必讀區] 核心共享權重 (1.2 GB):</strong> 包含超大詞表 (Embeddings 256K, ~0.7 GB) 與 1B 參數的共享專家 (Shared Expert, ~0.5 GB)。這 <strong>1.2 GB 必須無條件永久常駐 (Pinned) 在 DRAM 中</strong>。</li>
+<li><strong>[動態區] 獨立路由專家 (11.4 GB):</strong> 切分為 <code>30 層 × 128 個專家 = 3840 個獨立神經網路</code>。在 W4A4 下，<strong>單一專家極度輕量化，僅 3.04 MB</strong>！每次生字喚醒 8 個專家 (24.3 MB)。</li>
+</ul>
+<hr />
+
+<h2>
+    <span>🧠 二、 快取命中率 (Hit Rate) 理論與實證模型</span>
+    <a class="source-link" href="../10_gemma4_26b_final_sim.py" target="_blank">[Source Code: Zipfian LFU Simulator]</a>
+    <a class="source-link" href="../8_structural_sparsity/16_gemma4_cdf_plotter.py" target="_blank">[Source Code: CDF Plotter]</a>
+</h2>
+<p>既然 128 個專家無法全部放進 DRAM，我們必須依賴「齊夫定律 (Zipf's Law)」來建構 <strong>逐層最少使用常駐 (Layer-wise LFU Pinning)</strong> 策略。</p>
+
+<h3>CDF 累積命中率分佈 (Cumulative Distribution Function)</h3>
+<p>語言與邏輯任務呼叫特定專家的頻率呈現極端長尾分佈。下方的 CDF 曲線展示了「常駐在記憶體中的專家數量」與「命中率」的非線性關係。可以看到曲線在前期極為陡峭，這意味著我們只需付出少量的 DRAM 空間，就能換取巨大的 Hit Rate 收益。</p>
+<div style="text-align: center; margin: 20px 0;">
+    <img src="gemma4_expert_cdf.png" alt="Gemma-4 Expert CDF Plot" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+</div>
+
+<h3>數學模型 (Zipfian Distribution)</h3>
+<p>語言與邏輯任務呼叫特定專家的頻率呈現極端長尾分佈。當受限於手機剩餘 RAM 容量時，若我們能在每一層分配 K 個名額給最熱門的專家，其命中率公式為：<br>
+<code>HitRate(K) = Sum(i=1 to K, i^-1.2) / Sum(i=1 to 128, i^-1.2)</code></p>
+<ul>
+<li>如果我們給予 AI <strong>5.0 GB</strong> 的總 RAM 預算，扣除必讀的 1.2 GB，我們剩下 <strong>3.8 GB</strong> 可以拿來做快取。</li>
+<li>這 3.8 GB 可以讓我們在每一層鎖定 <strong>42 個熱門專家</strong> (僅佔單層專家數的 32.8%)。</li>
+<li>套入公式後，這 32.8% 的容量，能扛下高達 <strong>87.3% 的真實命中率</strong>！</li>
+</ul>
+<hr />
+
+<h2>
+    <span>📊 三、 DRAM 預算掃描 (Budget Sweep)</span>
+    <a class="source-link" href="../10_gemma4_26b_final_sim.py" target="_blank">[Source Code: Cycle-Accurate Simulator]</a>
+</h2>
+<table>
+<thead>
+<tr>
+<th>可用 AI RAM</th>
+<th>裝置等級 (Device Tier)</th>
+<th>專家常駐/層</th>
+<th>命中率</th>
+<th>生字速度 (T/s)</th>
+<th>能耗 (mJ / Tk)</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><strong>2.0 GB</strong></td><td>8GB 極限背景 (0.8GB快取)</td><td>8 / 128</td><td><strong>63.1 %</strong></td><td>⚠️ <strong>17.93 T/s</strong></td><td>246.3 mJ</td></tr>
+<tr><td><strong>3.0 GB</strong></td><td>8GB 主流狀態 (1.8GB快取)</td><td>20 / 128</td><td><strong>77.3 %</strong></td><td>🚀 <strong>20.39 T/s</strong></td><td>187.1 mJ</td></tr>
+<tr><td><strong>4.0 GB</strong></td><td>8GB 高階狀態 (2.8GB快取)</td><td>31 / 128</td><td><strong>83.4 %</strong></td><td>🚀 <strong>21.67 T/s</strong></td><td>161.7 mJ</td></tr>
+<tr><td><strong>5.0 GB</strong></td><td>8GB AI 全開 (3.8GB快取)</td><td>42 / 128</td><td><strong>87.3 %</strong></td><td>🏆 <strong>22.59 T/s</strong></td><td>145.3 mJ</td></tr>
+<tr><td><strong>8.0 GB</strong></td><td>12GB 旗艦手機 (6.8GB快取)</td><td>76 / 128</td><td><strong>94.4 %</strong></td><td>🏆 <strong>24.45 T/s</strong></td><td>115.7 mJ</td></tr>
+<tr><td><strong>13.0 GB</strong></td><td>16GB 特規電競機 (全進 RAM)</td><td>128 / 128</td><td><strong>100.0 %</strong></td><td>🏆 <strong>26.14 T/s</strong></td><td>92.4 mJ</td></tr>
+</tbody>
+</table>
+<hr />
+
+<h2>
+    <span>🔍 四、 Time-Over-Space 路由熱區分析 (O(1) Memory Profiling)</span>
+    <a class="source-link" href="../8_structural_sparsity/15_gemma4_layerwise_router_profiler.py" target="_blank">[Source Code: Layer-by-Layer Profiler]</a>
+</h2>
+<p>為了在沒有 15GB+ 顯示記憶體的邊緣設備（或本地 Mac）上實證上述的 Zipfian 分佈，我們導入了 <strong>時間換空間 (Time-Over-Space)</strong> 分析法：</p>
+<ul>
+<li><strong>記憶體復用機制 (Layer-by-Layer GC)</strong>：我們將原本 $O(N)$ 的記憶體空間複雜度，強行降維到 $O(1)$。每次迴圈僅透過 <code>safetensors.torch.load_file</code> 讀取單一層的 <code>router (gate)</code> 權重，單次峰值記憶體小於 500 MB。</li>
+<li><strong>路由攔截 (Router Interception)</strong>：只進行 Router 的矩陣運算，攔截 Top-8 索引分佈後，即刻利用 <code>del</code> 與 <code>gc.collect()</code> 清除狀態。</li>
+<li><strong>熱區視覺化 (Heatmap)</strong>：最終匯出 X 軸為 128 個專家、Y 軸為 30 層的熱區圖，完美證明「深度衰減與冷熱不均」的物理現象，為 LFU 快取策略提供最剛硬的數據背書。</li>
+</ul>
+<hr />
+
+<h2>
+    <span>🛠️ 五、 軟硬體協同設計規格 (HW/SW Co-Design)</span>
+    <a class="source-link" href="../11_gemma4_time_over_space_profiler.py" target="_blank">[Source Code: Hardware DMA Model]</a>
+</h2>
+<ol>
+<li><strong>OS 記憶體割讓 (Memory Carve-out):</strong> 作業系統必須鎖定 <code>1.2GB</code> 專用於 Shared Weights，剩餘動態切為 Layer-wise 快取池。</li>
+<li><strong>離散收集引擎 (Scatter-Gather DMA):</strong> 針對 Top-8 路由特化，硬體 DMA 必須一次抓齊 8 個散落 Flash 的微型專家 (3.04MB/個)。</li>
+<li><strong>專屬極早期路由 ALU (Early-Router ALU):</strong> Router 特徵一到立刻算完並觸發 DMA 預取，不與主 MAC 陣列搶佔 Queue。</li>
+</ol>
+<hr />
+
+<h2>📜 附錄：Time-Over-Space 核心擷取邏輯</h2>
+<pre><code class="language-python"># 核心 O(1) Memory Layer-by-Layer 讀取邏輯
+for layer_idx in range(LAYERS):
+    # 1. 僅透過 safetensors 讀取當前層的 Router 權重
+    state_dict = safetensors.torch.load_file(f"model.layers.{layer_idx}.safetensors")
+    gate_weight = state_dict["mlp.gate.weight"]
+    
+    # 2. 計算 Top-8 路由決策 (不進行後續大型 FFN MAC)
+    router_logits = torch.matmul(hidden_states, gate_weight.T)
+    topk_idx = torch.topk(router_logits, k=8).indices
+    
+    # 3. 累加至 hit_matrix 供 Heatmap 繪製
+    update_hit_matrix(layer_idx, topk_idx)
+    
+    # 4. 嚴格 O(1) GC 釋放 RAM，確保峰值記憶體小於 500MB
+    del state_dict, gate_weight, router_logits
+    gc.collect()
+    torch.cuda.empty_cache()
+</code></pre>
+</div>
+</body>
+</html>
