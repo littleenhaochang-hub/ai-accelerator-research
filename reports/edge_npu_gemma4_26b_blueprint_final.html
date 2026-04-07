@@ -164,7 +164,11 @@
 <p>傳統單次生成 1 個 Token，單層只需喚醒 8 個專家。若 MTP 深度為 N=3，這 3 個未來 Token 若選擇了完全不同的專家，將導致該層需喚醒高達 24 個專家。這會讓 Cache Miss Rate 瞬間擊穿 UFS 4.0 的頻寬極限，導致嚴重的 I/O 停頓。</p>
 
 <h3>2. 空間局部性與專家重疊 (Spatial Locality & Expert Overlap)</h3>
-<p>幸運的是，連續生成的 Token 具有極高的語意關聯性。根據側寫數據，同一批 MTP Token 的路由軌跡具有約 <strong>50%~70% 的專家重疊率 (Overlap Rate)</strong>。在 N=3 的情況下，透過「聯集 (Set Union)」，我們實際只需要從 Flash 抓取約 12~14 個獨立專家，而非 24 個。</p>
+<p>連續生成的 Token 具有極高的語意關聯性。為了證明這一點，我們引入了 <strong>連續特徵軌跡側寫 (Sequential Trajectory Profiling)</strong>：</p>
+<ul>
+    <li><strong>語意慣性 (Semantic Inertia)</strong>：在自回歸生成中，連續的 Token 通常共享相同的文法結構（例如皆處於動名詞片語中）與上下文主題（例如都在談論 Python 程式碼）。因此，這批 Token 的 Hidden States 向量在潛在空間 (Latent Space) 中距離極近。</li>
+    <li><strong>實證方法 (Jaccard Similarity)</strong>：我們採用滑動窗口 (Sliding Window, Window Size = N) 統計連續 Token 選擇的 Top-8 專家。透過實測 <a class="source-link" href="../8_structural_sparsity/19_gemma4_mtp_overlap_profiler.py" target="_blank">[Source Code: MTP Locality Profiler]</a> 證明，同一批 MTP Token 的路由軌跡具有約 <strong>50%~70% 的專家重疊率 (Overlap Rate)</strong>。在 N=3 的情況下，透過「聯集 (Set Union)」，我們實際只需要從 Flash 抓取約 12~14 個獨立專家，而非 24 個。</li>
+</ul>
 
 <h3>3. 硬體解法：聚合預取引擎 (Aggregated Batched Fetch)</h3>
 <p>為完美支援 MTP，Edge NPU 內的 Early-Router 必須升級為 <strong>MTP-Aware Early-Router</strong>：</p>
