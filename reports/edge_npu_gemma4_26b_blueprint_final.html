@@ -154,6 +154,29 @@
 
 <hr />
 
+<h2>
+    <span>⚡ 七、 Multi-Token Prediction (MTP) 與管線整合評估</span>
+    <a class="source-link" href="../8_structural_sparsity/18_gemma4_mtp_integration_sim.py" target="_blank">[Source Code: MTP Integrator]</a>
+</h2>
+<p>為了進一步打破 Memory Wall，下一代 Edge 部署必然會引入 Multi-Token Prediction (MTP) 技術（例如單次 Forward 同時生成 3 個 Token）。然而，MTP 與 MoE 快取管線的結合會帶來獨特的硬體挑戰與機遇：</p>
+
+<h3>1. 路由發散挑戰 (Router Divergence Challenge)</h3>
+<p>傳統單次生成 1 個 Token，單層只需喚醒 8 個專家。若 MTP 深度為 N=3，這 3 個未來 Token 若選擇了完全不同的專家，將導致該層需喚醒高達 24 個專家。這會讓 Cache Miss Rate 瞬間擊穿 UFS 4.0 的頻寬極限，導致嚴重的 I/O 停頓。</p>
+
+<h3>2. 空間局部性與專家重疊 (Spatial Locality & Expert Overlap)</h3>
+<p>幸運的是，連續生成的 Token 具有極高的語意關聯性。根據側寫數據，同一批 MTP Token 的路由軌跡具有約 <strong>50%~70% 的專家重疊率 (Overlap Rate)</strong>。在 N=3 的情況下，透過「聯集 (Set Union)」，我們實際只需要從 Flash 抓取約 12~14 個獨立專家，而非 24 個。</p>
+
+<h3>3. 硬體解法：聚合預取引擎 (Aggregated Batched Fetch)</h3>
+<p>為完美支援 MTP，Edge NPU 內的 Early-Router 必須升級為 <strong>MTP-Aware Early-Router</strong>：</p>
+<ul>
+    <li>提前算出未來 N 個 Token 的 Router Logits。</li>
+    <li>在硬體層級執行 <strong>去重 (Deduplication)</strong>，剔除重複的專家 ID。</li>
+    <li>將整合成單一的 SG-List 交給 DMA，向 UFS 4.0 發起 Burst Read 指令，最大化 Sequential Read 效率以掩蓋 Random Seek 延遲。</li>
+</ul>
+<p><strong>效能紅利</strong>：雖然 Flash 讀取量微幅上升，但 1.2GB 的 Base Weights 與 Shared Expert 的 DRAM 讀取成本被 N 個 Token 完美「平攤 (Amortized)」。這讓整體的算力利用率大幅提升，預估可將生字速度 (TPS) 再往上推升 <strong>1.5x ~ 1.8x</strong>。</p>
+
+<hr />
+
 <h2>📜 附錄：Time-Over-Space 核心擷取邏輯</h2>
 <pre><code class="language-python"># 核心 O(1) Memory Layer-by-Layer 讀取邏輯
 for layer_idx in range(LAYERS):
