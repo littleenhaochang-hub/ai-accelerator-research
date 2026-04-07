@@ -124,6 +124,36 @@
 </ol>
 <hr />
 
+<h2>
+    <span>🌊 六、 全局資料流與硬體管線建模 (Global Data Flow Pipeline)</span>
+    <a class="source-link" href="../8_structural_sparsity/17_gemma4_data_flow_simulator.py" target="_blank">[Source Code: Data Flow Simulator]</a>
+</h2>
+<p>為了精確定義系統從冷啟動到動態推論的物理行為，我們建構了資料流與管線模擬器，重點規範以下三個階段的硬體行為與 UFS (Flash) 實體佈局限制：</p>
+
+<h3>Phase 1: 系統冷啟動初始化 (Cold Boot & Cache Pre-fill)</h3>
+<p>在以 5GB 為總 RAM 預算的配置下，系統啟動時的 DMA 搬移策略如下：</p>
+<ul>
+    <li><strong>載入必讀區塊 (1.2 GB)</strong>：將 Embedding 巨型詞表與 Shared Expert 強制載入 LPDDR5x。</li>
+    <li><strong>載入熱門快取 (3.8 GB)</strong>：依據 Offline Profiling 的結果，直接將每一層最熱門的 Top-42 專家搬入 DRAM。</li>
+    <li><strong>啟動時間評估</strong>：總計 5.0 GB 的資料。依據 UFS 4.0 的 Sequential Read 頻寬 (約 3.0 GB/s)，系統冷啟動的硬體 DMA 搬移延遲為 <strong>~1.67 秒</strong>。</li>
+</ul>
+
+<h3>Phase 2: 動態推論與 Early-Router 電路需求</h3>
+<p>在實際推論時，每層需要喚醒 8 個專家。以 87.3% 的命中率計算，平均 6.98 個專家在 DRAM (Cache Hit)，<strong>約 1.02 個專家需要去 Flash 抓取 (Cache Miss)</strong>。</p>
+<ul>
+    <li><strong>管線停頓 (Pipeline Stall) 危機</strong>：Flash 的隨機讀取延遲 (Random Read Setup) 與傳輸時間約需 1~1.5 毫秒，這會嚴重拖垮 Token 生成速度。</li>
+    <li><strong>解法：Early-Router Predictor (提早路由預測器)</strong>：下一代 Edge NPU 必須包含一個獨立的小型 ALU 專門跑 Router 矩陣。當系統還在計算第 N 層的 MAC 時，Early-Router 就已經<strong>提前 N 個 Cycle 算出第 N+1 層的路由結果</strong>，並立即觸發非同步 DMA (Async DMA) 去 Flash 抓取那 1.02 個 Miss 的專家。藉由「計算與傳輸重疊 (Compute-Fetch Overlap)」，完全掩蓋 Flash 延遲。</li>
+</ul>
+
+<h3>Phase 3: UFS Flash 實體佈局限制 (Layout Constraints)</h3>
+<p>專家權重在 Flash 中的存放位置（Logical Block Addressing, LBA）將決定 DMA 的極限效能：</p>
+<ul>
+    <li><strong>4KB Page Alignment</strong>：由於單一專家僅 3.04 MB，若存放時跨越多個非連續的物理區塊，會導致 UFS 觸發多次尋道延遲 (Seek Penalty)。</li>
+    <li><strong>碎片化防護</strong>：在安裝或更新模型時，OS 必須強制將這 3840 個微型神經網路以「連續 LBA」的方式寫入 Flash，確保 DMA 發出單一讀取指令 (Single Read Command) 就能完整拉回一整塊專家矩陣。</li>
+</ul>
+
+<hr />
+
 <h2>📜 附錄：Time-Over-Space 核心擷取邏輯</h2>
 <pre><code class="language-python"># 核心 O(1) Memory Layer-by-Layer 讀取邏輯
 for layer_idx in range(LAYERS):
