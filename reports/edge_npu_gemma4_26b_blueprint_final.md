@@ -40,8 +40,8 @@
 
 下方的 CDF 曲線展示了「常駐在記憶體中的專家數量」與「命中率」的非線性關係。可以看到曲線在前期極為陡峭，這意味著我們只需付出少量的 DRAM 空間，就能換取巨大的 Hit Rate 收益。
 
-    ![Gemma-4 Expert CDF Plot](gemma4_expert_cdf.png)
+    <img src="gemma4_expert_cdf.png" alt="Gemma-4 Expert CDF Plot" width="100%">
     <p style="font-size: 0.9em; color: #718096; text-align: center; margin-bottom: 30px;">圖 1：專家快取數量與累積命中率 (CDF)</p>
     
-    ![Gemma-4 Router Heatmap](gemma4_router_heatmap.png)
+    <img src="gemma4_router_heatmap.png" alt="Gemma-4 Router Heatmap" width="100%">
     <p style="font-size: 0.9em; color: #718096; text-align: center;">圖 2：時間換空間 (Time-Over-Space) 實測之 30 層 x 128 專家路由熱區圖 (Heatmap)。明顯可見熱點集中於少數專家，完美印證長尾分佈假說。</p>
