@@ -17,6 +17,8 @@ Baseline prototype implemented simulating expert fetching overhead.
 
 | Experiment | SQNR (dB) | WikiText-2 PPL | Memory Footprint | Hardware Scheme | Block Size |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| Hadamard TurboQuant (Linear A4KV4 / A4W4 Sub) | 47.50 | 15.067 | 0.25x | e8m0 (Bit-Shift) | B128 |
+| Hadamard TurboQuant (LUT A4KV4 / A4W4 LUT) | 51.25 | 10.046 | 0.25x | NF4 LUT | B128 |
 | **Baseline (BF16 / BF16)** | inf | **8.294** | 1.00x | FP16 | N/A |
 | Attn Only (A8KV8 Sub / BF16) | 63.44 | 8.555 | 0.83x | e8m0 (Bit-Shift) | B128 |
 | FFN Only (BF16 / A8W8 Sub) | 58.44 | 8.673 | 0.67x | e8m0 (Bit-Shift) | B128 |
