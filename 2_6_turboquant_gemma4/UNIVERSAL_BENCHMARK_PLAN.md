@@ -1,4 +1,3 @@
-Auto-researcher initiated
 # Universal Hardware Benchmark Suite (Compound Noise Evaluation)
 
 ## Objective
