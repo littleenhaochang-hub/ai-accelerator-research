@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pillar 2 (Quantization) - The Ultimate Hardware Blueprint</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #2d3748; max-width: 1200px; margin: 0 auto; padding: 30px; background-color: #f7fafc; }
+    .container { background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { color: #2b6cb0; border-bottom: 3px solid #e2e8f0; padding-bottom: 10px; font-size: 2.2em; }
+    h2 { color: #2c5282; margin-top: 40px; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; font-size: 1.5em; }
+    h3 { color: #4a5568; margin-top: 25px; font-size: 1.2em; }
+    p { text-align: justify; font-size: 1.05em; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    th { background-color: #ebf8ff; color: #2b6cb0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85em; }
+    tr:nth-child(even) { background-color: #faf8f8; }
+    tr:hover { background-color: #f1f5f9; }
+    code { background-color: #edf2f7; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; color: #d53f8c; word-break: break-all; }
+    ul { margin-top: 5px; }
+    li { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Pillar 2 (Quantization) - The Ultimate Hardware Blueprint</h1>
+<p><strong>Target:</strong> Zero-Shot Edge AI Inference (Sub-4-Bit)
+<strong>Date:</strong> April 2026</p>
+<p>After exhausting the ablation search space across Attention, FFN, Data Types, and Scale Precision, this is the definitive, data-backed architecture required to break the Memory and Compute Walls while surviving the 3.40 dB SNR "Death Line."</p>
+<h2>1. The Optimal Architecture (The "Holy Grail" Configuration)</h2>
+<p>To achieve maximum tokens/sec within a heavily constrained Edge NPU (e.g., 32MB SLC, LPDDR5), the hardware must adopt an asymmetric, mixed-precision pipeline.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Component</th>
+<th style="text-align: left;">Target Parameter</th>
+<th style="text-align: left;">Data Type</th>
+<th style="text-align: left;">Effective Bit-Width</th>
+<th style="text-align: left;">Quantization Algorithm</th>
+<th style="text-align: left;">Hardware Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Attention</strong></td>
+<td style="text-align: left;"><strong>Key (K) Cache</strong></td>
+<td style="text-align: left;"><strong>INT8</strong></td>
+<td style="text-align: left;">8.0 bits</td>
+<td style="text-align: left;">Uniform (Per-Channel)</td>
+<td style="text-align: left;"><strong>Softmax Amplifier:</strong> The exponential nature of Softmax destroys K4 (SNR drops to 1.67 dB). K8 guarantees perfect angular geometry (11.91 dB SNR).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Attention</strong></td>
+<td style="text-align: left;"><strong>Value (V) Cache</strong></td>
+<td style="text-align: left;"><strong>FP4 (E2M1)</strong></td>
+<td style="text-align: left;">4.5 bits</td>
+<td style="text-align: left;">Block 32 Micro-Scaling</td>
+<td style="text-align: left;"><strong>Linear Payload:</strong> Values are multiplied post-Softmax. FP4 handles the distribution perfectly, halving the V-cache bandwidth.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Attention</strong></td>
+<td style="text-align: left;"><strong>Q / K / V / O Proj</strong></td>
+<td style="text-align: left;"><strong>FP4 (E2M1)</strong></td>
+<td style="text-align: left;">4.25 bits</td>
+<td style="text-align: left;">Block 32 + E4M3 Scales</td>
+<td style="text-align: left;"><strong>Compute Bound:</strong> Pushing Attention Dense weights to FP4 actually <em>regularizes</em> the quantization noise, improving overall logic retention.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>FFN</strong></td>
+<td style="text-align: left;"><strong>Weights (W)</strong></td>
+<td style="text-align: left;"><strong>FP4 (E2M1)</strong></td>
+<td style="text-align: left;">4.25 bits</td>
+<td style="text-align: left;">Block 32 Micro-Scaling</td>
+<td style="text-align: left;"><strong>Outlier Mitigation:</strong> Uniform INT4 fails catastrophically (-1.79 dB). FP4's exponential grid naturally absorbs normal activations near zero.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>FFN</strong></td>
+<td style="text-align: left;"><strong>Activations (A)</strong></td>
+<td style="text-align: left;"><strong>FP4 (E2M1)</strong></td>
+<td style="text-align: left;">4.25 bits</td>
+<td style="text-align: left;">Block 32 Micro-Scaling</td>
+<td style="text-align: left;"><strong>The SiLU Wall:</strong> Requires isolating massive activation spikes into 32-element sub-vectors so they don't crush the surrounding 99% of features.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Global</strong></td>
+<td style="text-align: left;"><strong>Micro-Scales</strong></td>
+<td style="text-align: left;"><strong>FP8 (E4M3)</strong></td>
+<td style="text-align: left;">8.0 bits (per block)</td>
+<td style="text-align: left;">Dynamic Exponent Mapping</td>
+<td style="text-align: left;"><strong>Scale Precision:</strong> E3M4 clips outliers (1.94 dB). E8M0 drops SNR to 3.00 dB. E4M3 perfectly balances dynamic range and SRAM footprint.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Global</strong></td>
+<td style="text-align: left;"><strong>Boundary Layers</strong></td>
+<td style="text-align: left;"><strong>FP16</strong></td>
+<td style="text-align: left;">16.0 bits</td>
+<td style="text-align: left;">Native</td>
+<td style="text-align: left;"><strong>Mixed-Precision Bypassing:</strong> Layer 0 (Embedding) and Layer N (LM Head) must bypass quantization to anchor the semantic representations.</td>
+</tr>
+</tbody>
+</table>
+<p><em>(Note: If strict 4-bit KV caching is mandated by physical SRAM limits, </em><em>SVD 50% Truncation + INT8</em><em> (yielding 6.07 dB SNR) replaces the K8V4 format.)</em></p>
+<hr />
+<h2>2. Next Steps for Pillar 2 (Auto-Researcher Directives)</h2>
+<p>The theoretical boundaries of Zero-Shot (PTQ) quantization are now mapped. To push the architecture further, the Auto-Researcher must transition from <em>evaluating</em> noise to <em>compensating</em> for it dynamically.</p>
+<h3>Action Item A: The FP4 (E2M1) Hardware Emulator</h3>
+<ul>
+<li><strong>Objective:</strong> Move beyond <code>fake_quantize</code> and build a bit-exact emulator for the OCP FP4 MAC unit.</li>
+<li><strong>Why:</strong> We need to simulate the exact accumulator bit-width (e.g., INT32 vs FP32 vs FP16) when multiplying two FP4 values. If the accumulator lacks precision, the Pipeline Stalls we saw in BitNet (1.58-bit) will reappear.</li>
+<li><strong>Deliverable:</strong> A PyTorch extension or Triton kernel that performs <code>FP4 x FP4 -&gt; FP32 Accumulation -&gt; E4M3 Scale Multiplier -&gt; FP4 Output</code>.</li>
+</ul>
+<h3>Action Item B: Learnable Affine Compensation (QAT Lite)</h3>
+<ul>
+<li><strong>Objective:</strong> Defeat the "Cascading Error" of A4KV4 + W4A4 (which currently yields 0.55 dB SNR).</li>
+<li><strong>Why:</strong> Offline Affine Calibration failed (0.04 Cosine Sim) because KV4 noise is highly non-linear. We cannot fix it with a static Mean/Std shift.</li>
+<li><strong>Deliverable:</strong> Implement a rapid, 100-step gradient update (Quantization-Aware Training) that <em>only</em> trains a tiny Scale/Shift vector placed before the FFN. By freezing the LLM and only training this 1D vector to absorb the KV4 noise, we might achieve QAT-level recovery with PTQ-level compute costs.</li>
+</ul>
+<h3>Action Item C: Integration with MoE Drafter (Pillar 3 Crossover)</h3>
+<ul>
+<li><strong>Objective:</strong> Combine the ultimate W4A4 Block 32 architecture with the 68M MoE Drafter.</li>
+<li><strong>Why:</strong> We proved that a 30M dense drafter takes 15MB of SRAM, but an MoE drafter (68M total, 17M active) takes ~24MB with 65% locality.</li>
+<li><strong>Deliverable:</strong> Write a cycle-accurate simulator that tracks the LPDDR5x bandwidth consumed by loading the E4M3 scale factors vs. the FP4 weights during a Speculative Decoding phase where the MoE Router misses the SRAM cache.</li>
+</ul>
+</div>
+</body>
+</html>

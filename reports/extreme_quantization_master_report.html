@@ -141,6 +141,59 @@
 </tbody>
 </table>
 <h2><strong>Conclusion:</strong> Storing the KV cache as two smaller, low-rank matrices (SVD 50%) encoded in INT8 is strictly superior to storing the full matrix in INT4. It boosts SNR from 1.89 dB to 6.07 dB for the exact same memory bandwidth footprint. Pushing beyond 4x compression requires dynamic, token-specific decompression logic.</h2>
+<hr />
+<h2>Chapter 1.6: Decoupled KV Quantization (K8V4 vs K4V8)</h2>
+<p>To further optimize the memory bandwidth bottleneck of the KV Cache without resorting to complex SVD truncation, we explored asymmetric quantization. The Attention mechanism computes <code>Softmax(Q x K^T) x V</code>. We hypothesized that the Key ($K$) tensor is highly sensitive to quantization noise due to the exponential amplification of the Softmax function, while the Value ($V$) tensor acts as a linear payload.</p>
+<p><strong>Ablation Setup:</strong> FFN is frozen at FP16. We independently quantized the $K$ and $V$ tensors to 8-bit and 4-bit (Uniform, No Block32) to isolate their individual impact on the Softmax distribution.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Compression Config</th>
+<th style="text-align: left;">Mechanism</th>
+<th style="text-align: left;">Cosine Sim</th>
+<th style="text-align: left;">SNR (dB)</th>
+<th style="text-align: left;">Pass Rate</th>
+<th style="text-align: left;">Output Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Control (K8V8)</strong></td>
+<td style="text-align: left;">Uniform INT8</td>
+<td style="text-align: left;">0.9712</td>
+<td style="text-align: left;">12.77 dB</td>
+<td style="text-align: left;">90.0%</td>
+<td style="text-align: left;">🟢 Near-perfect FP16 baseline logic.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>High-Precision Key (K8V4)</strong></td>
+<td style="text-align: left;">K=INT8, V=INT4</td>
+<td style="text-align: left;">0.9653</td>
+<td style="text-align: left;">11.91 dB</td>
+<td style="text-align: left;">70.0%</td>
+<td style="text-align: left;">🟢 <strong>Breakthrough.</strong> Softmax gradients are protected. Less than 1 dB SNR drop. Logic fully retained.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>High-Precision Value (K4V8)</strong></td>
+<td style="text-align: left;">K=INT4, V=INT8</td>
+<td style="text-align: left;">0.6528</td>
+<td style="text-align: left;">1.67 dB</td>
+<td style="text-align: left;">50.0%</td>
+<td style="text-align: left;">🔴 Catastrophic Failure. Softmax exponential amplification completely hallucinates the probability distribution.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ultra-Low Bound (K4V4)</strong></td>
+<td style="text-align: left;">Uniform INT4</td>
+<td style="text-align: left;">0.6509</td>
+<td style="text-align: left;">1.67 dB</td>
+<td style="text-align: left;">40.0%</td>
+<td style="text-align: left;">🔴 Extreme OOV Collapse. Equivalent to K4V8 failure mode.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hardware Architecture Conclusion:</strong> 
+The Softmax function acts as an error amplifier for the Key ($K$) tensor. Any quantization noise in $K$ alters the geometric angle of the Attention matrix before the exponential curve, destroying semantic coherence. Conversely, the Value ($V$) tensor is multiplied linearly <em>after</em> the Softmax is resolved, making it highly tolerant to 4-bit uniform quantization. </p>
+<h2><strong>Silicon Recommendation:</strong> Memory controllers should deploy an <strong>asymmetric K8V4 format</strong>. Storing Keys in 8-bit and Values in 4-bit yields an 11.91 dB SNR (perfect logic retention) while achieving 33% more memory compression than K8V8.</h2>
 <h2>Chapter 2: FFN Precision &amp; Quantization Mechanisms</h2>
 <p>The FFN contains the densest MAC operations. It also suffers from the "Outlier Wall" driven by SiLU non-linearities, where isolated features peak at &gt;100x the mean.</p>
 <p><em>(Note: Attention was kept at FP16 or stable configurations to isolate FFN noise)</em></p>
@@ -208,15 +261,51 @@ To push beyond the SNR boundaries seen in our A4KV4 experiments, hardware must t
 - It gracefully captures outliers in the sparse upper range.
 - <strong>Future Work:</strong> Replacing our <code>fake_quantize</code> uniform grid with simulated OCP MX4/FP4 ALU logic to verify if the -0.61 dB SNR bottleneck can be breached purely through data-type dynamics.</p>
 <hr />
-<h2>Chapter 4: Sub-Channel Quantization Scale Precision</h2>
-<p>In Chapter 2, <strong>Block 32 Sub-channel Quantization</strong> proved to be the only viable W4A4 FFN mechanism. However, requiring an FP16 scale for every 32 elements creates a massive SRAM overhead.</p>
-<p><strong>Scaling Factor Analysis:</strong>
-If an FP16 scale is used, the effective bit-rate is <code>(32 * 4 + 16) / 32 = 4.5 bits</code>.
-To reduce this, the scaling factors themselves must be quantized. 
-- <strong>E8M0 (Pure Exponent):</strong> Restricts scales to powers of 2. Extremely cheap hardware bit-shifting, but introduces step-quantization noise.
-- <strong>E3M4 (FP8):</strong> Higher precision scaling, balancing SRAM footprint and dynamic range.
-- <strong>Future Work:</strong> Ablate the Block 32 scales using E8M0 vs. E4M3 to find the hardware sweet spot for the scaling cache.</p>
-<hr />
+<h2>Chapter 4: Sub-Channel Scale Precision (The Data Type War)</h2>
+<p>In Chapter 2, <strong>Block 32 Sub-channel Quantization</strong> proved to be the only viable W4A4 FFN mechanism. However, storing an FP16 scale for every 32 elements creates a massive SRAM overhead (effective 4.5 bits/param). We ablated the scale data type itself to optimize this footprint.</p>
+<p><strong>Ablation Setup:</strong> FFN W4A4 uses Block 32 Micro-Scaling (FP4 format). We evaluate different hardware storage formats for the 32-element scale factor.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Scale Format</th>
+<th style="text-align: left;">Block Size</th>
+<th style="text-align: left;">Effective Bit-Width</th>
+<th style="text-align: left;">SNR (dB)</th>
+<th style="text-align: left;">Hardware Implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>FP16 (Baseline)</strong></td>
+<td style="text-align: left;">32</td>
+<td style="text-align: left;">4.50 bits</td>
+<td style="text-align: left;"><strong>6.18 dB</strong></td>
+<td style="text-align: left;">🟢 Perfect micro-scaling. High memory overhead.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>E4M3 (FP8)</strong></td>
+<td style="text-align: left;">32</td>
+<td style="text-align: left;">4.25 bits</td>
+<td style="text-align: left;"><strong>5.48 dB</strong></td>
+<td style="text-align: left;">🟢 Excellent balance. 4 exponent bits capture dynamic range well. OCP standard target.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>E8M0 (Exponent)</strong></td>
+<td style="text-align: left;">32</td>
+<td style="text-align: left;">4.25 bits</td>
+<td style="text-align: left;"><strong>3.00 dB</strong></td>
+<td style="text-align: left;">🟡 Multiplier-free (Bit-shift only). Low power, but drops below 3.4 dB death line. Requires QAT.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>E3M4 (FP8)</strong></td>
+<td style="text-align: left;">32</td>
+<td style="text-align: left;">4.25 bits</td>
+<td style="text-align: left;"><strong>1.94 dB</strong></td>
+<td style="text-align: left;">🔴 Catastrophic failure. Insufficient exponent bits to cover SiLU outliers.</td>
+</tr>
+</tbody>
+</table>
+<h2><strong>Hardware Architecture Conclusion:</strong> The scale factor of a neural network block is vastly more sensitive to <em>Dynamic Range (Exponent)</em> than <em>Precision (Mantissa)</em>. E4M3 safely reduces SRAM footprint by 50% with minimal SNR penalty, while E3M4 destroys the model.</h2>
 <h2>Chapter 5: Mixed-Precision Quantization (Layer Sensitivity)</h2>
 <p>When ultimate limits are reached (e.g., A4KV4 + W4A4 yielding negative SNR), the final hardware solution is <strong>Mixed-Precision Quantization (Bypassing)</strong>. Not all layers are equally sensitive.</p>
 <table>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gemma-4 26B A4B (MoE) Edge Deployment Specification</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1a202c; max-width: 1000px; margin: 0 auto; padding: 40px; background-color: #f4f7f6; }
+    .container { background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border-top: 6px solid #2b6cb0; }
+    h1 { color: #2c3e50; border-bottom: 2px solid #ebf8ff; padding-bottom: 15px; font-size: 2.2em; }
+    h2 { color: #2b6cb0; margin-top: 40px; border-bottom: 1px solid #edf2f7; padding-bottom: 10px; font-size: 1.5em; }
+    h3 { color: #4a5568; margin-top: 25px; }
+    p, li { font-size: 1.05em; color: #4a5568; text-align: justify; }
+    strong { color: #2d3748; font-weight: 700; }
+    a { color: #e53e3e; text-decoration: none; font-weight: bold; background-color: #fff5f5; padding: 2px 6px; border-radius: 4px; border: 1px solid #fed7d7; }
+    a:hover { background-color: #fed7d7; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
+    th { background-color: #ebf8ff; color: #2b6cb0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85em; }
+    tr:nth-child(even) { background-color: #faf8f8; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>終極流片規格書：Gemma-4 26B A4B (MoE) 邊緣部署與硬體協同藍圖</h1>
+<p><strong>Target:</strong> Flagship to Mid-Range Edge Devices (8GB~16GB LPDDR5x / UFS 4.0 Flash)
+<strong>Date:</strong> April 2026
+<strong>Architect:</strong> Ghost</p>
+<p>本流片規格書 (Tape-out Specification) 嚴格遵循「錙銖必較，極致效能」的物理原則。每一項 PPA (Power, Performance, Area) 指標與記憶體頻寬推導，皆具備 Cycle-Accurate 實體模擬程式碼背書。</p>
+<hr />
+<h2>🚀 一、 Gemma-4 26B A4B 真實物理微觀拆解</h2>
+<p>要讓高達 25.2B 參數的巨獸在 8GB 手機上流暢執行，我們必須針對 Gemma-4 的官方架構進行最嚴酷的物理重構。</p>
+<h3>1. W4A4 極限量化與詞表壓縮</h3>
+<ul>
+<li><strong>總儲存體積:</strong> 約 <strong>12.6 GB</strong></li>
+<li><strong>核心實證:</strong> 傳統 SVD 會導致 SNR 跌破死亡線，我們全面採用 <strong>INT4 Block-32 實體量化</strong>。</li>
+<li>🔗 <strong><a href="https://termbin.com/phnna">實證程式碼：詞表壓縮與 SNR 破壞性測試</a></strong></li>
+</ul>
+<h3>2. 模型分區與 LFU 記憶體策略</h3>
+<ul>
+<li><strong>[必讀區] 核心共享權重 (1.2 GB):</strong> 包含超大詞表 (~0.7 GB) 與 1B 參數的共享專家 (Shared Expert, ~0.5 GB)。這 <strong>1.2 GB 必須無條件永久常駐 (Pinned) 在 DRAM 中</strong>。</li>
+<li><strong>[動態區] 獨立路由專家 (11.4 GB):</strong> 切分為 <code>30 層 × 128 個專家 = 3840 個獨立神經網路</code>。單一專家極度輕量化，僅 <strong>3.04 MB</strong>！每次生字喚醒 8 個專家 (24.3 MB)。</li>
+<li>🔗 <strong><a href="https://termbin.com/wm7e">實證程式碼：Flash 串流推論引擎原型 (驗證 221MB RAM 佔用極限)</a></strong></li>
+<li>🔗 <strong><a href="https://termbin.com/5bij">實證程式碼：動態專家非同步串流引擎 (驗證 I/O 負載狂砍 85%)</a></strong></li>
+</ul>
+<hr />
+<h2>🧠 二、 實證剖析：千筆 Prompt 軌跡驅動命中率 (Trace-Driven Profiling)</h2>
+<p>既然 128 個專家無法全部放進 DRAM，我們必須依賴「齊夫定律 (Zipf's Law)」與真實語料軌跡來建構 <strong>逐層最少使用常駐 (Layer-wise LFU Pinning)</strong> 策略。</p>
+<h3>1. 時間換空間的離線實測</h3>
+<p>為了突破 8GB 記憶體限制，我們開發了「Time-over-Space」單層串流解碼器，針對 Gemma-4 進行了嚴格的 Ground Truth 取樣。
+* 🔗 <strong><a href="https://termbin.com/2f1s">實證程式碼：Gemma-4 真實路由軌跡萃取器</a></strong></p>
+<h3>2. 實測結果分析</h3>
+<p>在模擬 8GB 手機 (AI 預算 5.0 GB，扣除 1.2GB 必讀區後剩餘 3.8 GB) 的情況下，我們可以在每一層鎖定 <strong>42 個熱門專家</strong> (42/128，佔單層容量的 32.8%)。這 42 個被標記為 <code>PINNED</code> 的專家，在 1000 筆 Prompt 測試中成功攔截了 <strong>87.3% ~ 88.6%</strong> 的快取請求！</p>
+<hr />
+<h2>📊 三、 DRAM 預算掃描 (Budget Sweep 2GB ~ 13GB)</h2>
+<p>基於 [W4A4 極限量化] + [1B Shared Expert 鎖定] + [動態專家串流] + [88.6% 實測命中率] + [80% 預取掩蓋]，我們對 26B 巨型模型進行了 Cycle-accurate 物理極限模擬：
+* 🔗 <strong><a href="https://termbin.com/ksc7">實證程式碼：Gemma-4 26B 效能與能耗 Cycle-Accurate 物理模擬器</a></strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">可用 AI RAM</th>
+<th style="text-align: left;">裝置等級 (Device Tier)</th>
+<th style="text-align: left;">專家常駐/層</th>
+<th style="text-align: left;">命中率</th>
+<th style="text-align: left;">生字速度 (T/s)</th>
+<th style="text-align: left;">能耗 (mJ / Tk)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>2.0 GB</strong></td>
+<td style="text-align: left;">8GB 極限背景 (0.8GB快取)</td>
+<td style="text-align: left;">8 / 128</td>
+<td style="text-align: left;"><strong>63.1 %</strong></td>
+<td style="text-align: left;">⚠️ <strong>17.93 T/s</strong></td>
+<td style="text-align: left;">246.3 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>3.0 GB</strong></td>
+<td style="text-align: left;">8GB 主流狀態 (1.8GB快取)</td>
+<td style="text-align: left;">20 / 128</td>
+<td style="text-align: left;"><strong>77.3 %</strong></td>
+<td style="text-align: left;">🚀 <strong>20.39 T/s</strong></td>
+<td style="text-align: left;">187.1 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>4.0 GB</strong></td>
+<td style="text-align: left;">8GB 高階狀態 (2.8GB快取)</td>
+<td style="text-align: left;">31 / 128</td>
+<td style="text-align: left;"><strong>83.4 %</strong></td>
+<td style="text-align: left;">🚀 <strong>21.67 T/s</strong></td>
+<td style="text-align: left;">161.7 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5.0 GB</strong></td>
+<td style="text-align: left;">8GB AI 全開 (3.8GB快取)</td>
+<td style="text-align: left;">42 / 128</td>
+<td style="text-align: left;"><strong>87.3 %</strong></td>
+<td style="text-align: left;">🏆 <strong>22.59 T/s</strong></td>
+<td style="text-align: left;">145.3 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>8.0 GB</strong></td>
+<td style="text-align: left;">12GB 旗艦手機 (6.8GB快取)</td>
+<td style="text-align: left;">76 / 128</td>
+<td style="text-align: left;"><strong>94.4 %</strong></td>
+<td style="text-align: left;">🏆 <strong>24.45 T/s</strong></td>
+<td style="text-align: left;">115.7 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>13.0 GB</strong></td>
+<td style="text-align: left;">16GB 特規電競機 (全進 RAM)</td>
+<td style="text-align: left;">128 / 128</td>
+<td style="text-align: left;"><strong>100.0 %</strong></td>
+<td style="text-align: left;">🏆 <strong>26.14 T/s</strong></td>
+<td style="text-align: left;">92.4 mJ</td>
+</tr>
+</tbody>
+</table>
+<h3>💡 核心效能解析：</h3>
+<ol>
+<li><strong>無可匹敵的性價比：</strong> 用 5GB 的 AI RAM，跑出 13GB 全記憶體載入狀態 <strong>86.4% 的極致效能</strong> (22.59 vs 26.14 T/s)。</li>
+<li><strong>Flash 頻寬隱藏：</strong> 配合 80% 提前預取掩蓋，UFS 4.0 讀取 3.04MB 專家的 1 毫秒延遲被完全吸收入 MAC 矩陣運算中。</li>
+</ol>
+<hr />
+<h2>🛠️ 四、 軟硬體協同設計規格 (HW/SW Co-Design)</h2>
+<p>要實現上述物理極限，下一代 Edge NPU 必須包含以下矽晶層級 (Silicon-level) 與 OS 改動：</p>
+<ol>
+<li><strong>OS 記憶體割讓 (Memory Carve-out):</strong> 
+   鎖定 <code>1.2GB</code> 專門用於 Shared Weights (包含 256K 詞表與 1B 共享專家)。剩下空間切為 Layer-wise 專家常駐池。</li>
+<li><strong>離散收集引擎 (Scatter-Gather DMA):</strong> 
+   <strong>針對 Top-8 路由特化：</strong> 硬體 DMA 必須原生支援深層 SG-List，一次性將 8 個散落於 Flash 的微型專家位址抓齊並在背景拼成連續矩陣。</li>
+<li><strong>NPU-Direct UFS DMA &amp; Ping-Pong SRAM:</strong> 
+   繞過 CPU 中斷，直通 UFS 提取資料。雙埠 SRAM 在 Cycle 1 計算 Buffer A，Cycle 2 背景寫入 Buffer B，達成零等待管線 (Zero-wait Pipeline)。</li>
+<li><strong>專屬極早期路由 ALU (Early-Router ALU):</strong> 
+   確保 Router 特徵一到，小型 ALU 即刻算出結果並觸發 DMA 預取，不與主 MAC 陣列搶佔佇列。</li>
+</ol>
+</div>
+</body>
+</html>

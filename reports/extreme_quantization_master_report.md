@@ -104,18 +104,21 @@ To push beyond the SNR boundaries seen in our A4KV4 experiments, hardware must t
 - It gracefully captures outliers in the sparse upper range.
 - **Future Work:** Replacing our `fake_quantize` uniform grid with simulated OCP MX4/FP4 ALU logic to verify if the -0.61 dB SNR bottleneck can be breached purely through data-type dynamics.
 
----
+------
 
-## Chapter 4: Sub-Channel Quantization Scale Precision
-In Chapter 2, **Block 32 Sub-channel Quantization** proved to be the only viable W4A4 FFN mechanism. However, requiring an FP16 scale for every 32 elements creates a massive SRAM overhead.
+## Chapter 4: Sub-Channel Scale Precision (The Data Type War)
+In Chapter 2, **Block 32 Sub-channel Quantization** proved to be the only viable W4A4 FFN mechanism. However, storing an FP16 scale for every 32 elements creates a massive SRAM overhead (effective 4.5 bits/param). We ablated the scale data type itself to optimize this footprint.
 
-**Scaling Factor Analysis:**
-If an FP16 scale is used, the effective bit-rate is `(32 * 4 + 16) / 32 = 4.5 bits`.
-To reduce this, the scaling factors themselves must be quantized. 
-- **E8M0 (Pure Exponent):** Restricts scales to powers of 2. Extremely cheap hardware bit-shifting, but introduces step-quantization noise.
-- **E3M4 (FP8):** Higher precision scaling, balancing SRAM footprint and dynamic range.
-- **Future Work:** Ablate the Block 32 scales using E8M0 vs. E4M3 to find the hardware sweet spot for the scaling cache.
+**Ablation Setup:** FFN W4A4 uses Block 32 Micro-Scaling (FP4 format). We evaluate different hardware storage formats for the 32-element scale factor.
 
+| Scale Format | Block Size | Effective Bit-Width | SNR (dB) | Hardware Implication |
+| :--- | :--- | :--- | :--- | :--- |
+| **FP16 (Baseline)** | 32 | 4.50 bits | **6.18 dB** | 🟢 Perfect micro-scaling. High memory overhead. |
+| **E4M3 (FP8)** | 32 | 4.25 bits | **5.48 dB** | 🟢 Excellent balance. 4 exponent bits capture dynamic range well. OCP standard target. |
+| **E8M0 (Exponent)** | 32 | 4.25 bits | **3.00 dB** | 🟡 Multiplier-free (Bit-shift only). Low power, but drops below 3.4 dB death line. Requires QAT. |
+| **E3M4 (FP8)** | 32 | 4.25 bits | **1.94 dB** | 🔴 Catastrophic failure. Insufficient exponent bits to cover SiLU outliers. |
+
+**Hardware Architecture Conclusion:** The scale factor of a neural network block is vastly more sensitive to *Dynamic Range (Exponent)* than *Precision (Mantissa)*. E4M3 safely reduces SRAM footprint by 50% with minimal SNR penalty, while E3M4 destroys the model.
 ---
 
 ## Chapter 5: Mixed-Precision Quantization (Layer Sensitivity)

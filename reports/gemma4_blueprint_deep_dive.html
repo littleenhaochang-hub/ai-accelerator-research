@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gemma-4 26B A4B: Ultimate HW/SW Blueprint (Deep Dive)</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.7; color: #1f2937; max-width: 1050px; margin: 0 auto; padding: 50px; background-color: #f3f4f6; }
+    .container { background-color: #ffffff; padding: 50px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); border-top: 6px solid #1d4ed8; }
+    h1 { color: #1e3a8a; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px; font-size: 2.3em; letter-spacing: -0.02em; font-weight: 800; }
+    h2 { color: #2563eb; margin-top: 45px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; font-size: 1.5em; font-weight: 700; }
+    h3 { color: #374151; margin-top: 25px; font-size: 1.2em; font-weight: 600; border-left: 4px solid #3b82f6; padding-left: 10px; }
+    p, li { font-size: 1.08em; color: #4b5563; text-align: justify; margin-bottom: 12px; }
+    strong { color: #111827; font-weight: 700; }
+    a { color: #dc2626; text-decoration: none; font-weight: 600; background-color: #fef2f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecaca; transition: all 0.2s; }
+    a:hover { background-color: #fecaca; color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; margin: 30px 0; font-size: 1em; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
+    th, td { padding: 14px 15px; border-bottom: 1px solid #e5e7eb; }
+    th { background-color: #eff6ff; color: #1d4ed8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:nth-child(even) { background-color: #f8fafc; }
+    code { background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.9em; color: #b91c1c; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>終極流片規格書：Gemma-4 26B A4B (MoE) 邊緣部署與硬體協同藍圖 (深度詳解版)</h1>
+<p><strong>Target:</strong> Flagship to Mid-Range Edge Devices (8GB~16GB LPDDR5x / UFS 4.0 Flash)
+<strong>Date:</strong> April 2026
+<strong>Architect:</strong> Ghost (TPU Architecture Lead)</p>
+<p>本流片規格書 (Tape-out Specification) 嚴格遵循「錙銖必較，極致效能」的物理原則。我們不接受任何缺乏底層 Data Flow (資料流) 支撐的軟體層面黑魔法。本報告中的每一項 PPA (Power, Performance, Area) 指標與記憶體頻寬推導，皆具備 Cycle-Accurate (週期精確) 的實體模擬程式碼背書。</p>
+<p>為滿足架構評審委員會 (ARB) 的深度審查需求，本版規格書已將每個章節的<strong>物理機制、數學推導、硬體管線狀態機 (State Machine)</strong> 進行了全面且毫無保留的展開。</p>
+<hr />
+<h2>🚀 一、 Gemma-4 26B A4B 真實物理微觀拆解</h2>
+<p>要讓高達 25.2B 參數的巨獸在 8GB 手機 (作業系統扣除後僅剩 5GB 餘裕) 上流暢執行，我們必須針對 Gemma-4 的官方架構進行最嚴酷的物理重構。這不僅是軟體的壓縮，更是實體記憶體佈局 (Physical Memory Layout) 的重新定義。</p>
+<h3>1. W4A4 極限量化與巨型詞表壓縮</h3>
+<p>模型龐大的體積是端側部署的唯一死穴。
+* <strong>物理極限壓縮:</strong> 我們將所有 FP16 的浮點數權重，透過硬體感知 (Hardware-aware) 的方式壓縮至 W4A4 格式 (0.5 Bytes/Parameter)。這使得 25.2B 的龐然大物在 Flash 上的靜態儲存體積驟降至 <strong>12.6 GB</strong>。
+* <strong>詞表高秩災難 (The High-Rank Embedding Disaster):</strong> Gemma 擁有 256K 的超大詞表。實驗證明，若採用傳統的 SVD 低秩分解，會直接破壞文字特徵的幾何方向，導致 SNR (訊號雜訊比) 跌破 3.40dB 的死亡線，模型將完全喪失語意能力。
+* <strong>硬體決策:</strong> 我們全面採用 <strong>INT4 Block-32 實體量化</strong> 來處理 Embedding Table，在將體積從 1000MB 壓縮至 281MB 的同時，穩穩保住了 20.26 dB 的超高保真度。
+* 🔗 <strong><a href="https://termbin.com/phnna">實證程式碼：詞表壓縮與 SNR 破壞性測試</a></strong></p>
+<h3>2. 模型分區與 LFU 記憶體分層策略</h3>
+<p>在 50GB/s 頻寬的 LPDDR5x 與 3GB/s 的 UFS 4.0 之間，我們建立了嚴格的「階級制度」。模型被無情地切分為兩大物理區塊：
+* <strong>[必讀區] 核心共享權重 (1.2 GB):</strong> 
+  * <em>組成:</em> 包含超大詞表 (~0.7 GB) 與 1B 參數的共享專家 (Shared Expert, ~0.5 GB)。
+  * <em>硬體約束:</em> 這些權重在<strong>每一個 Token</strong> 的生成週期中都處於 Critical Path (關鍵路徑) 上。若將其放入 Flash，每次生字的延遲將高達數秒。因此，這 <strong>1.2 GB 必須無條件、永久地被鎖死 (Pinned) 在 DRAM 中</strong>，作業系統的虛擬記憶體管理器 (VMM) 絕對不允許將其 Swap 掉。
+* <strong>[動態區] 獨立路由專家 (11.4 GB):</strong> 
+  * <em>組成:</em> 切分為 <code>30 層 × 128 個專家 = 3840 個獨立神經網路</code>。
+  * <em>碎化優勢:</em> 在 W4A4 下，單一專家極度輕量化，僅 <strong>3.04 MB</strong>！NPU 每次生字只會喚醒 8 個專家 (總計 24.3 MB)。這種「極度碎化」的設計完美契合了我們的非同步 DMA 預取管線。
+* 🔗 <strong><a href="https://termbin.com/wm7e">實證程式碼：Flash 串流推論引擎原型 (驗證 221MB RAM 佔用極限)</a></strong>
+* 🔗 <strong><a href="https://termbin.com/5bij">實證程式碼：動態專家非同步串流引擎 (驗證 I/O 負載狂砍 85%)</a></strong></p>
+<hr />
+<h2>🧠 二、 實證剖析：千筆 Prompt 軌跡驅動命中率 (Trace-Driven Profiling)</h2>
+<p>既然 128 個專家無法全部塞進 DRAM，我們必須依賴「齊夫定律 (Zipf's Law)」來建構 <strong>逐層最少使用常駐 (Layer-wise LFU Pinning)</strong> 策略。但作為嚴謹的架構師，我們不盲信數學公式，我們只相信 Ground Truth。</p>
+<h3>1. 時間換空間的離線實測 (Time-over-Space Execution)</h3>
+<p>為突破 8GB 設備的記憶體物理限制，我們無法一次性將 12.6GB 的模型載入。為此，我們開發了專屬的單層串流解碼器：
+* <strong>執行邏輯:</strong> 迴圈中每次僅從 SSD 讀取小於 5MB 的 <code>mlp.gate</code> (路由閘門) 權重進入 RAM，與 1000 筆多樣化 Prompt (涵蓋百科、程式碼、閒聊) 的特徵矩陣相乘，記錄下所有專家的喚醒頻率後，立刻觸發垃圾回收 (<code>gc.collect()</code>)，再讀取下一層。
+* 🔗 <strong><a href="https://termbin.com/2f1s">實證程式碼：Gemma-4 真實路由軌跡萃取器</a></strong></p>
+<h3>2. 實測結果深度分析</h3>
+<p>透過對 15 萬次真實 Token 路由決策的剖析，我們揭開了 MoE 黑盒的真相：
+* <strong>極端長尾效應 (The Long Tail Skew):</strong> 負責處理標點符號、連接詞的「語法專家」呈現跨領域的超高頻喚醒率。
+* <strong>靜態 LFU 的壓倒性勝利:</strong> 在模擬 8GB 手機 (總 AI 預算 5.0 GB，扣除 1.2GB 必讀區後剩餘 3.8 GB) 的配置下，我們可以在每一層鎖定 <strong>42 個熱門專家</strong> (佔該層專家的 32.8%)。
+* <strong>最終實測命中率:</strong> 這 32.8% 被標記為 <code>PINNED</code> 的專家，在 1000 筆 Prompt 測試中成功攔截了高達 <strong>87.3% ~ 88.6%</strong> 的快取請求！這證明了「靜態常駐」不僅零運行時開銷 (Zero Runtime Overhead)，且效能完全碾壓傳統的 LRU (Least Recently Used) 動態替換演算法。</p>
+<hr />
+<h2>📊 三、 DRAM 預算掃描與 PPA 邊界 (Budget Sweep 2GB ~ 13GB)</h2>
+<p>基於前述的所有技術堆疊：<strong>[W4A4 極限量化] + [1.2GB 核心鎖定] + [動態專家串流] + [87.3% 實測命中率] + [80% 預取掩蓋]</strong>，我們對 26B 巨型模型進行了 Cycle-accurate (週期精確) 的物理極限模擬，計算出精確的每秒生成字數 (Tokens/sec) 與能耗 (mJ/Token)。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">可用 AI RAM</th>
+<th style="text-align: left;">裝置等級 (Device Tier)</th>
+<th style="text-align: left;">專家常駐/層</th>
+<th style="text-align: left;">命中率</th>
+<th style="text-align: left;">生字速度 (T/s)</th>
+<th style="text-align: left;">能耗 (mJ / Tk)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>2.0 GB</strong></td>
+<td style="text-align: left;">8GB 極限背景 (0.8GB快取)</td>
+<td style="text-align: left;">8 / 128</td>
+<td style="text-align: left;"><strong>63.1 %</strong></td>
+<td style="text-align: left;">⚠️ <strong>17.93 T/s</strong></td>
+<td style="text-align: left;">246.3 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>3.0 GB</strong></td>
+<td style="text-align: left;">8GB 主流狀態 (1.8GB快取)</td>
+<td style="text-align: left;">20 / 128</td>
+<td style="text-align: left;"><strong>77.3 %</strong></td>
+<td style="text-align: left;">🚀 <strong>20.39 T/s</strong></td>
+<td style="text-align: left;">187.1 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>4.0 GB</strong></td>
+<td style="text-align: left;">8GB 高階狀態 (2.8GB快取)</td>
+<td style="text-align: left;">31 / 128</td>
+<td style="text-align: left;"><strong>83.4 %</strong></td>
+<td style="text-align: left;">🚀 <strong>21.67 T/s</strong></td>
+<td style="text-align: left;">161.7 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>5.0 GB</strong></td>
+<td style="text-align: left;">8GB AI 全開 (3.8GB快取)</td>
+<td style="text-align: left;">42 / 128</td>
+<td style="text-align: left;"><strong>87.3 %</strong></td>
+<td style="text-align: left;">🏆 <strong>22.59 T/s</strong></td>
+<td style="text-align: left;">145.3 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>8.0 GB</strong></td>
+<td style="text-align: left;">12GB 旗艦手機 (6.8GB快取)</td>
+<td style="text-align: left;">76 / 128</td>
+<td style="text-align: left;"><strong>94.4 %</strong></td>
+<td style="text-align: left;">🏆 <strong>24.45 T/s</strong></td>
+<td style="text-align: left;">115.7 mJ</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>13.0 GB</strong></td>
+<td style="text-align: left;">16GB 特規電競機 (全進 RAM)</td>
+<td style="text-align: left;">128 / 128</td>
+<td style="text-align: left;"><strong>100.0 %</strong></td>
+<td style="text-align: left;">🏆 <strong>26.14 T/s</strong></td>
+<td style="text-align: left;">92.4 mJ</td>
+</tr>
+</tbody>
+</table>
+<h3>💡 核心效能與能耗 (Energy-Delay) 解析：</h3>
+<ol>
+<li><strong>無可匹敵的硬體性價比 (The Hardware Leverage)：</strong> 
+   業界普遍認為 26B 模型無法在 8GB 手機上運行。但我們證明了，僅使用 5GB 的 AI RAM，我們就能跑出 13GB 全記憶體載入狀態 <strong>86.4% 的極致效能</strong> (22.59 vs 26.14 T/s)。我們用架構設計抹平了昂貴的記憶體矽面積 (Silicon Area) 成本。</li>
+<li><strong>Flash 頻寬延遲隱藏 (Latency Hiding)：</strong> 
+   配合 80% 的 Lookahead 提前預取掩蓋，UFS 4.0 讀取單一 3.04MB 專家的 1 毫秒物理延遲，被完美吸收並隱藏在 NPU 主 MAC 陣列計算龐大 Attention 矩陣的週期中，達成了近乎零等待的流水線 (Pipeline)。</li>
+<li><strong>UFS 讀取能耗懸崖 (The Energy Cliff)：</strong> 
+   觀察 5.0GB 退回 2.0GB 的數據，速度僅下降約 20%，但能耗卻從 145.3 mJ 飆升至 246.3 mJ。這精準反映了 UFS Flash 極高的讀取耗電 (500 pJ/Byte)。高命中率的 LFU 常駐不僅是為了「提速」，更是確保手機電池不會在三分鐘內過熱耗盡的關鍵。</li>
+</ol>
+<hr />
+<h2>🛠️ 四、 軟硬體協同設計與 RTL 矽晶片規格 (HW/SW Co-Design &amp; RTL Specs)</h2>
+<p>要將上述 22.59 T/s 的理論轉化為流片 (Tape-out) 的現實，下一代 Edge NPU SoC 必須進行以下五大底層硬體 IP 的改動。任何「純軟體」的妥協都將導致管線崩潰。</p>
+<ol>
+<li><strong>作業系統實體記憶體割讓 (OS Physical Memory Carve-out):</strong> </li>
+<li><em>機制:</em> 驅動程式必須呼叫底層 API (<code>mlock</code>)，強行鎖定 <code>1.2GB</code> 專門用於 Shared Weights。剩餘的可用 RAM 需劃分為 30 個連續的 Physical Memory Blocks，作為 Layer-wise 專家常駐池。VMM (虛擬記憶體管理) 對此區塊不具備干涉權。</li>
+<li><strong>離散收集 DMA 引擎 (Scatter-Gather DMA Engine):</strong> </li>
+<li><em>機制:</em> 針對 Gemma-4 的 Top-8 路由特化。硬體 DMA 必須原生支援深層 SG-List。NPU 拋出 8 個離散的專家實體位址後，DMA 必須在硬體層面一次性將這 8 個散落於 Flash 的微型專家 (3.04MB/個) 抓齊，並在進入 SRAM 前重組為連續的矩陣記憶體佈局。</li>
+<li><strong>NPU 直通閃存與乒乓 SRAM 狀態機 (NPU-Direct UFS &amp; Ping-Pong SRAM):</strong> </li>
+<li><em>機制:</em> 徹底繞過 CPU 中斷與 OS File System 開銷。NPU 內部配置 30MB 等級的雙埠 (Dual-Port) SRAM，硬體刻線分為 Buffer A 與 Buffer B。</li>
+<li><em>狀態機:</em> <code>Cycle T</code>: NPU 從 Buffer A 讀取權重進行乘加運算；DMA 同時將 Layer T+1 的預測專家寫入 Buffer B。<code>Cycle T+1</code>: 狀態機無縫翻轉 (Flip)，達成 Zero-wait Pipeline。</li>
+<li><strong>專屬極早期路由 ALU (Dedicated Early-Router ALU):</strong> </li>
+<li><em>機制:</em> 在龐大的主 MAC 陣列 (負責 Attention 與大矩陣) 之外，配置一個小型的平行 ALU。</li>
+<li><em>目標:</em> 確保輸入特徵一準備好，這個小型 ALU 就能在 1~2 個 Clock Cycle 內獨立算出 <code>mlp.gate</code> 的 Router Logits，並立刻發送中斷訊號給 DMA 啟動預取，絕對不可被卡在主運算陣列的 Instruction Queue 中。</li>
+<li><strong>區塊微縮放硬體反量化器 (Block-32 Hardware Dequantizer):</strong> </li>
+<li><em>機制:</em> 所有靜態儲存的權重皆為 W4A4。在 NPU 的 Register File (暫存器) 讀取端，必須實作硬體組合邏輯電路 (Combinational Logic)。每吃進 32 個 INT4 權重與 1 個 FP16 Scale，在資料送入 MAC 乘法器前的<strong>同一個 Clock Cycle</strong> 內，零延遲還原為原精度數值。</li>
+</ol>
+</div>
+</body>
+</html>

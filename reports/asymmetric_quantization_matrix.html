@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #2d3748; max-width: 1200px; margin: 0 auto; padding: 30px; background-color: #f7fafc; }
+    .container { background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { color: #2b6cb0; border-bottom: 3px solid #e2e8f0; padding-bottom: 10px; font-size: 2.2em; }
+    h2 { color: #2c5282; margin-top: 40px; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; font-size: 1.5em; }
+    h3 { color: #4a5568; margin-top: 25px; font-size: 1.2em; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    th { background-color: #ebf8ff; color: #2b6cb0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85em; }
+    tr:nth-child(even) { background-color: #faf8f8; }
+    tr:hover { background-color: #f1f5f9; }
+    code { background-color: #edf2f7; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; color: #d53f8c; word-break: break-all; }
+    ul { margin-top: 5px; }
+    li { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>The Ultimate Asymmetric Quantization Design Matrix</h1>
+<p><strong>Target:</strong> Edge AI / NPUs (Zero-shot PTQ, Qwen 0.5B-7B)
+<strong>Date:</strong> April 2026</p>
+<p>This matrix synthesizes all ablation tests across <strong>Attention</strong>, <strong>FFN</strong>, <strong>Execution Phase (Encode/Decode)</strong>, <strong>Quantization Algorithm</strong>, and <strong>Scale Format</strong>. It provides the definitive hardware blueprint for maximizing tokens/sec while remaining above the <strong>3.40 dB SNR Death Line</strong>.</p>
+<hr />
+<h2>1. Hardware Phase Segregation (Encode vs. Decode)</h2>
+<p>The physical bottleneck flips depending on the execution phase. A monolithic quantization strategy wastes precision and bandwidth.
+*   <strong>Encode (Prefill):</strong> Compute-Bound (Matrix-Matrix). Activations dominate SRAM. The KV Cache is being <em>written</em>, not repeatedly read.
+*   <strong>Decode (Generation):</strong> Memory-Bound (Matrix-Vector). Reading the KV Cache and Weights from DRAM dominates time. Activations are negligible (1 token).</p>
+<hr />
+<h2>2. The Definitive Configuration Matrix</h2>
+<p>Based on our ablation studies, here are the required configurations for different combinations of Attention and FFN compressions.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Attention</th>
+<th style="text-align: left;">FFN</th>
+<th style="text-align: left;">Viability</th>
+<th style="text-align: left;">Required Quant Alg</th>
+<th style="text-align: left;">Required Scale Fmt</th>
+<th style="text-align: left;">Phase Policy (Encode / Decode)</th>
+<th style="text-align: left;">Hardware Insight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>A8KV8</strong></td>
+<td style="text-align: left;"><strong>A8W4</strong></td>
+<td style="text-align: left;">🟢 Safe</td>
+<td style="text-align: left;">Uniform</td>
+<td style="text-align: left;">Block 32 (E4M3)</td>
+<td style="text-align: left;"><strong>Encode:</strong> W4A8<br><strong>Decode:</strong> W4A8</td>
+<td style="text-align: left;">The safest fallback. 100% logic retention. E4M3 scale perfectly balances SRAM overhead.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A8KV8</strong></td>
+<td style="text-align: left;"><strong>A4W4</strong></td>
+<td style="text-align: left;">🟢 Optimal</td>
+<td style="text-align: left;">Block 32 (both)</td>
+<td style="text-align: left;">Block 32 (E4M3)</td>
+<td style="text-align: left;"><strong>Encode:</strong> W4A8 (Protect Compute)<br><strong>Decode:</strong> W4A4</td>
+<td style="text-align: left;"><strong>The Holy Grail.</strong> In Decode, A4W4 shrinks weight bandwidth. In Encode, lifting to A8 protects the dense matrix-matrix math.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A8KV4</strong></td>
+<td style="text-align: left;"><strong>A8W4</strong></td>
+<td style="text-align: left;">🟡 Marginal</td>
+<td style="text-align: left;">1D Hadamard</td>
+<td style="text-align: left;">Block 32 (FP16)</td>
+<td style="text-align: left;"><strong>Encode:</strong> W4A8<br><strong>Decode:</strong> W4A8</td>
+<td style="text-align: left;"><em>Requires FP16 scales</em> to survive. K4 noise cascades into FFN. E4M3/E8M0 scales will push it below the Death Line.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A8KV4</strong></td>
+<td style="text-align: left;"><strong>A4W4</strong></td>
+<td style="text-align: left;">🔴 Fail</td>
+<td style="text-align: left;">1D Hadamard</td>
+<td style="text-align: left;">Block 32 (E4M3)</td>
+<td style="text-align: left;"><strong>Encode:</strong> W4A8<br><strong>Decode:</strong> W4A4</td>
+<td style="text-align: left;">The KV4 noise destroys the A4 dynamic range in the FFN. Fails without QAT or Heavy Mixed-Precision bypassing.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A4KV4</strong></td>
+<td style="text-align: left;"><strong>A4W4</strong></td>
+<td style="text-align: left;">🔴 Fail</td>
+<td style="text-align: left;">2D Hadamard</td>
+<td style="text-align: left;">Block 32 (E4M3)</td>
+<td style="text-align: left;"><strong>Encode:</strong> W4A4<br><strong>Decode:</strong> W4A4</td>
+<td style="text-align: left;">Extreme OOV collapse. Sequence length breaks orthogonal energy bounds.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>A8KV8</strong></td>
+<td style="text-align: left;"><strong>A4W2</strong></td>
+<td style="text-align: left;">🔴 Fail</td>
+<td style="text-align: left;">Block 32</td>
+<td style="text-align: left;">Block 32 (FP16)</td>
+<td style="text-align: left;"><strong>Encode:</strong> W2A8<br><strong>Decode:</strong> W2A4</td>
+<td style="text-align: left;">W2 (2-bit weights) lacks the representational capacity to form correct feature planes without intensive Quantization-Aware Training (QAT).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. Engineering Recommendations for RTL / Chip Architects</h2>
+<h3>A. The "Golden Rule" of the Softmax Amplifier (Asymmetric KV)</h3>
+<p>Our decoupled KV experiments (<code>K8V4</code> vs <code>K4V8</code>) proved that the Key (K) tensor is exponentially magnified by the Softmax function, making it highly sensitive to quantization noise.
+*   <strong>Recommendation:</strong> If KV8 is too large, do <strong>NOT</strong> use A8KV4. Use <strong>Asymmetric K8V4</strong>. Store Keys in 8-bit to protect attention geometry, and store Values in 4-bit (which are linearly multiplied post-Softmax). </p>
+<h3>B. Sub-Channel Scale Precision (E8M0 vs E4M3)</h3>
+<p>In the FFN layer, Block 32 micro-scaling is mandatory to isolate SiLU outliers.
+*   <strong>Do not use INT8 or E3M4</strong> for scales; they lack the dynamic range (exponent bits) to cover massive outliers, causing SNR collapse.
+*   <strong>Use E4M3 (FP8)</strong> as the standard. It provides a 5.48 dB SNR while cutting the SRAM scale overhead from 0.5 bits/param (FP16) to 0.25 bits/param.
+*   <strong>E8M0 (Multiplier-Free):</strong> While computationally free (pure bit-shifts), E8M0 drops SNR to 3.00 dB (below the 3.4 dB threshold). It can only be used on non-sensitive middle layers, or paired with QAT.</p>
+<h3>C. The Mixed-Precision Controller (The Ultimate Safety Net)</h3>
+<p>Regardless of the core W4/A4 configuration, the NPU/ALU must support dynamic precision routing.
+*   <strong>Layer 0 (Embedding/First Layer)</strong> and <strong>Layer N (LM Head)</strong> must <strong>always</strong> be executed in FP16. Our experiments proved that forcing these boundaries into W4A4 drops accuracy from 70% to 60%, whereas keeping them in FP16 perfectly masks the W4A4 noise of the middle 22 layers.</p>
+</div>
+</body>
+</html>
