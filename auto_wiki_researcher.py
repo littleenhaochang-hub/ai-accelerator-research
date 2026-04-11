@@ -41,7 +41,7 @@ def save_processed_paper(link):
         json.dump(processed, f)
 
 def update_wiki():
-    print(f"[{datetime.now().isoformat()}] Starting LLM Wiki Auto-Updater...")
+    print(f"[{datetime.now().isoformat()}] 啟動 LLM Wiki 知識圖譜自動更新器...")
     processed_links = load_processed_papers()
     
     # Query 1: LUT & Sub-4-bit
@@ -60,15 +60,15 @@ def update_wiki():
             append_to_wiki(target_file, p, "Dynamic Sparse & Prefill Discoveries")
             save_processed_paper(p["link"])
             
-    print("Wiki update complete.")
+    print("Wiki 知識圖譜更新完成。")
 
 def append_to_wiki(filepath, paper_data, section_title):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     content = f"\n## 🤖 Auto-Researcher Update: {datetime.now().strftime('%Y-%m-%d')}\n"
     content += f"### {paper_data['title']}\n"
-    content += f"- **Published:** {paper_data['published']}\n"
-    content += f"- **Link:** {paper_data['link']}\n"
-    content += f"- **Summary:** {paper_data['summary']}\n\n"
+    content += f"- **發表時間:** {paper_data['published']}\n"
+    content += f"- **論文連結:** {paper_data['link']}\n"
+    content += f"- **摘要:** {paper_data['summary']}\n\n"
     
     # If file doesn't exist, create it
     if not os.path.exists(filepath):
@@ -78,7 +78,7 @@ def append_to_wiki(filepath, paper_data, section_title):
     with open(filepath, 'a') as f:
         f.write(content)
         
-    print(f"-> Appended new research to: {os.path.basename(filepath)}")
+    print(f"-> 已將最新研究附加至： {os.path.basename(filepath)}")
 
 if __name__ == "__main__":
     update_wiki()
