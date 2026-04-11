@@ -1,0 +1,15 @@
+# Dynamic Sparse & Prefill Discoveries
+
+## 🤖 Auto-Researcher Update: 2026-04-11
+### DiffuMask: Diffusion Language Model for Token-level Prompt Pruning
+- **Published:** 2026-04-08T03:08:18Z
+- **Link:** http://arxiv.org/abs/2604.06627v1
+- **Summary:** In-Context Learning and Chain-of-Thought prompting improve reasoning in large language models (LLMs). These typically come at the cost of longer, more expensive prompts that may contain redundant information. Prompt compression based on pruning offers a practical solution, yet existing methods rely on sequential token removal which is computationally intensive. We present DiffuMask, a diffusion-based framework integrating hierarchical shot-level and token-level pruning signals, that enables rapid and parallel prompt pruning via iterative mask prediction. DiffuMask substantially accelerates the compression process via masking multiple tokens in each denoising step. It offers tunable control over retained content, preserving essential reasoning context and achieving up to 80\% prompt length reduction. Meanwhile, it maintains or improves accuracy across in-domain, out-of-domain, and cross-model settings. Our results show that DiffuMask provides a generalizable and controllable framework for prompt compression, facilitating faster and more reliable in-context reasoning in LLMs.
+
+
+## 🤖 Auto-Researcher Update: 2026-04-11
+### Fast Cross-Operator Optimization of Attention Dataflow
+- **Published:** 2026-04-03T20:37:58Z
+- **Link:** http://arxiv.org/abs/2604.03446v1
+- **Summary:** Attention is a fundamental computational kernel that accounts for the majority of the workload in transformer and LLM computing. Optimizing dataflow is crucial for enhancing both performance and energy efficiency in attention computation. This optimization involves a range of decisions, such as tiling, computation ordering and buffer management, and can be applied at both intra-operator and inter-operator levels, resulting in a highly complex decision space. We propose a new approach to cross-operator dataflow optimization. Its centerpiece is an analytical performance model that spans a large decision space and enables matrix-based encoding of multiple candidate solutions. Built on this foundation, a vast number of solutions can be evaluated rapidly, and with the aid of an effective pruning technique, the optimal solution can be identified through exhaustive enumeration. We refer to our method as MMEE (Matrix Multiplication Encoded Enumeration). The ability to efficiently enumerate a large design space allows MMEE to deliver higher-quality solutions at a substantially faster speed compared to prior approaches. The MMEE approach is evaluated across various test cases for different accelerator configurations. For energy-driven optimization, MMEE reduces energy consumption by 48%-50% and latency by 31%-69%, compared to state-of-the-art methods. For latency-driven optimization, MMEE achieves simultaneous reductions of 40%-50% in energy consumption and 40%-69% in latency, respectively. Additionally, MMEE is $64\times$ to $343\times$ faster than previous works.
+
