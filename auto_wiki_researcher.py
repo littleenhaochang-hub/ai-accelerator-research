@@ -45,7 +45,7 @@ def update_wiki():
     processed_links = load_processed_papers()
     
     # Query 1: LUT & Sub-4-bit
-    papers = fetch_arxiv("all:LLM+AND+all:hardware+AND+all:LUT", max_results=2)
+    papers = fetch_arxiv("all:LLM+AND+all:hardware+AND+all:LUT", max_results=5)
     for p in papers:
         if p["link"] not in processed_links:
             target_file = os.path.join(WIKI_DIR, "Algorithms_Quantization", "NF4_LUT_Quantization.md")
@@ -53,13 +53,22 @@ def update_wiki():
             save_processed_paper(p["link"])
 
     # Query 2: Prefill & Sparse
-    papers = fetch_arxiv("all:LLM+AND+all:accelerator+AND+all:pruning", max_results=2)
+    papers = fetch_arxiv("all:LLM+AND+all:accelerator+AND+all:pruning", max_results=5)
     for p in papers:
         if p["link"] not in processed_links:
             target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "Prefill_Sparse_Prediction.md")
             append_to_wiki(target_file, p, "Dynamic Sparse & Prefill Discoveries")
             save_processed_paper(p["link"])
             
+    
+    # Query 3: Processing in Memory / MoE
+    papers = fetch_arxiv("all:LLM+AND+all:accelerator+AND+(all:MoE+OR+all:PIM)", max_results=5)
+    for p in papers:
+        if p["link"] not in processed_links:
+            target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "MoE_Edge_Architecture.md")
+            append_to_wiki(target_file, p, "MoE & Near-Memory Accelerators")
+            save_processed_paper(p["link"])
+
     print("Wiki 知識圖譜更新完成。")
 
 def append_to_wiki(filepath, paper_data, section_title):
