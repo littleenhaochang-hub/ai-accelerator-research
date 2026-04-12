@@ -44,31 +44,30 @@ def update_wiki():
     print(f"[{datetime.now().isoformat()}] 啟動 LLM Wiki 知識圖譜自動更新器...")
     processed_links = load_processed_papers()
     
-    # Query 1: LUT & Sub-4-bit
-    papers = fetch_arxiv("all:LLM+AND+all:hardware+AND+all:LUT", max_results=5)
-    for p in papers:
+    # 搜尋 1: 硬體架構 (Hardware Architecture) - 包含 ISCA, MICRO, arXiv
+    papers_hw = fetch_arxiv('all:"hardware architecture"+AND+(all:LLM+OR+all:accelerator)+AND+(all:ISCA+OR+all:MICRO+OR+all:arXiv)', max_results=4)
+    for p in papers_hw:
+        if p["link"] not in processed_links:
+            target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "Emerging_Architectures.md")
+            append_to_wiki(target_file, p, "硬體架構探索 (Hardware Architecture)")
+            save_processed_paper(p["link"])
+
+    # 搜尋 2: 模型架構 (Model Architecture) - 包含 ICML, ICLR, arXiv
+    papers_model = fetch_arxiv('all:"model architecture"+AND+(all:LLM+OR+all:SSM+OR+all:MoE)+AND+(all:ICML+OR+all:ICLR+OR+all:arXiv)', max_results=4)
+    for p in papers_model:
+        if p["link"] not in processed_links:
+            target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "Model_Architecture_CoDesign.md")
+            append_to_wiki(target_file, p, "模型架構與演算法 (Model Architecture)")
+            save_processed_paper(p["link"])
+
+    # 搜尋 3: 解決當前瓶頸 (Quantization & Prefill)
+    papers_quant = fetch_arxiv('all:quantization+AND+all:LLM+AND+(all:outlier+OR+all:LUT)', max_results=2)
+    for p in papers_quant:
         if p["link"] not in processed_links:
             target_file = os.path.join(WIKI_DIR, "Algorithms_Quantization", "NF4_LUT_Quantization.md")
-            append_to_wiki(target_file, p, "LUT & Low-Bit ALU Discoveries")
-            save_processed_paper(p["link"])
-
-    # Query 2: Prefill & Sparse
-    papers = fetch_arxiv("all:LLM+AND+all:accelerator+AND+all:pruning", max_results=5)
-    for p in papers:
-        if p["link"] not in processed_links:
-            target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "Prefill_Sparse_Prediction.md")
-            append_to_wiki(target_file, p, "Dynamic Sparse & Prefill Discoveries")
+            append_to_wiki(target_file, p, "量化與離群值處理 (Quantization & Outliers)")
             save_processed_paper(p["link"])
             
-    
-    # Query 3: Processing in Memory / MoE
-    papers = fetch_arxiv("all:LLM+AND+all:accelerator+AND+(all:MoE+OR+all:PIM)", max_results=5)
-    for p in papers:
-        if p["link"] not in processed_links:
-            target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "MoE_Edge_Architecture.md")
-            append_to_wiki(target_file, p, "MoE & Near-Memory Accelerators")
-            save_processed_paper(p["link"])
-
     print("Wiki 知識圖譜更新完成。")
 
 def append_to_wiki(filepath, paper_data, section_title):
