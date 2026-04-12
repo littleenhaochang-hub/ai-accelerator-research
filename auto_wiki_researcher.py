@@ -45,7 +45,7 @@ def update_wiki():
     processed_links = load_processed_papers()
     
     # 搜尋 1: 硬體架構 (Hardware Architecture) - 包含 ISCA, MICRO, arXiv
-    papers_hw = fetch_arxiv('all:"hardware architecture"+AND+(all:LLM+OR+all:accelerator)+AND+(all:ISCA+OR+all:MICRO+OR+all:arXiv)', max_results=4)
+    papers_hw = fetch_arxiv('all:%22hardware+architecture%22+AND+(all:LLM+OR+all:accelerator)+AND+(all:ISCA+OR+all:MICRO+OR+all:arXiv)', max_results=4)
     for p in papers_hw:
         if p["link"] not in processed_links:
             target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "Emerging_Architectures.md")
@@ -53,7 +53,7 @@ def update_wiki():
             save_processed_paper(p["link"])
 
     # 搜尋 2: 模型架構 (Model Architecture) - 包含 ICML, ICLR, arXiv
-    papers_model = fetch_arxiv('all:"model architecture"+AND+(all:LLM+OR+all:SSM+OR+all:MoE)+AND+(all:ICML+OR+all:ICLR+OR+all:arXiv)', max_results=4)
+    papers_model = fetch_arxiv('all:%22model+architecture%22+AND+(all:LLM+OR+all:SSM+OR+all:MoE)+AND+(all:ICML+OR+all:ICLR+OR+all:arXiv)', max_results=4)
     for p in papers_model:
         if p["link"] not in processed_links:
             target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "Model_Architecture_CoDesign.md")
@@ -68,6 +68,16 @@ def update_wiki():
             append_to_wiki(target_file, p, "量化與離群值處理 (Quantization & Outliers)")
             save_processed_paper(p["link"])
             
+    
+    # 搜尋 4: 未知領域盲測 (Wildcard Exploration)
+    # 用途：探索完全不在預期內的新技術名詞 (例如光子計算、生物運算、或是全新的硬體詞彙)
+    papers_wild = fetch_arxiv('all:%22hardware+accelerator%22+AND+all:%22beyond+CMOS%22', max_results=2)
+    for p in papers_wild:
+        if p["link"] not in processed_links:
+            target_file = os.path.join(WIKI_DIR, "Hardware_Architecture", "Wildcard_Exploration.md")
+            append_to_wiki(target_file, p, "未知領域盲測 (Wildcard Exploration)")
+            save_processed_paper(p["link"])
+
     print("Wiki 知識圖譜更新完成。")
 
 def append_to_wiki(filepath, paper_data, section_title):
