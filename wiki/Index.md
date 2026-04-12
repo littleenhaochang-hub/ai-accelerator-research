@@ -6,6 +6,7 @@ Welcome to the automated LLM Wiki. This serves as the structured, cross-linked m
 * [[FP24_Accumulator]] - Reducing dense compute MAC area and power.
 * [[MoE_Edge_Architecture]] - Edge deployment constraints and Zipfian LFU caching.
 * [[Prefill_Sparse_Prediction]] - Mitigating O(N^2) memory bandwidth limits during encode.
+* [[Emerging_Architectures]] - Auto-explored novel LLM hardware paradigms.
 
 ## 🗂️ Algorithms & Quantization
 * [[Householder_TurboQuant]] - Overcoming standard TurboQuant prefill stalls.
