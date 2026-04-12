@@ -1,3 +1,76 @@
+
+def extract_autonomous_prototypes():
+    target_file = "/Users/hao/.openclaw/workspace/ai-accelerator-research/wiki/Hardware_Architecture/Autonomous_Prototypes.md"
+    if not os.path.exists(target_file):
+        return ""
+        
+    with open(target_file, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    today_str = datetime.datetime.now().strftime('%Y-%m-%d')
+    if today_str not in content:
+        return "\n*今日 Autonomous Prototyper 無新增打樣測試。*\n"
+        
+    # Extract only today's section
+    import re
+    matches = re.findall(r'## 🧪 Autonomous Prototype: ' + today_str + r'.*?(?=\n## 🧪|$)', content, re.DOTALL)
+## 🧪 Autonomous Prototype:|\Z)', content, re.DOTALL)
+    
+    if not matches:
+        return "\n*今日 Autonomous Prototyper 無新增打樣測試。*\n"
+        
+    report = "\n## 🧪 AI 自主打樣與驗證報告 (Autonomous Prototyper)\n"
+    for match in matches:
+        # Format the output a bit cleaner for the daily report
+        report += match + "\n"
+        
+    return report
+
+
+def extract_wiki_updates():
+    wiki_dir = "/Users/hao/.openclaw/workspace/ai-accelerator-research/wiki"
+    wiki_report = "\n## 🤖 Auto-Researcher 論文探索總結 (今日最新)\n"
+    
+    found_updates = False
+    
+    if not os.path.exists(wiki_dir):
+        return ""
+        
+    for root, _, files in os.walk(wiki_dir):
+        for file in files:
+            if not file.endswith(".md"): continue
+            
+            filepath = os.path.join(root, file)
+            with open(filepath, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+                
+            in_update = False
+            update_text = ""
+            for line in lines:
+                if line.startswith("## 🤖 Auto-Researcher"):
+                    # Check if it's today
+                    today_str = datetime.datetime.now().strftime('%Y-%m-%d')
+                    if today_str in line:
+                        in_update = True
+                        found_updates = True
+                        wiki_report += f"\n### 📂 分類: {file.replace('.md', '')}\n"
+                        continue
+                    else:
+                        in_update = False
+                        
+                if in_update:
+                    if line.startswith("### "):
+                        wiki_report += f"- **論文標題:** {line.replace('### ', '').strip()}\n"
+                    elif line.startswith("- **摘要:**"):
+                        wiki_report += f"  - **重點:** {line.replace('- **摘要:**', '').strip()[:200]}...\n"
+                    elif line.startswith("- **Link:**") or line.startswith("- **論文連結:**"):
+                        wiki_report += f"  - **連結:** {line.replace('- **論文連結:**', '').replace('- **Link:**', '').strip()}\n"
+
+    if not found_updates:
+        wiki_report += "\n*今日 Auto-Researcher 無新增文獻或探索紀錄。*\n"
+        
+    return wiki_report
+
 import datetime
 import os
 import re
@@ -10,7 +83,7 @@ REPORT_TEMPLATE = """# AI 加速器自動研究系統 (Auto-Researcher) 每日�
 {content}
 """
 
-def extract_pillars(checkpoint_path="RESEARCH_STATUS_CHECKPOINT.md"):
+def extract_pillars(checkpoint_path="/Users/hao/.openclaw/workspace/ai-accelerator-research/RESEARCH_STATUS_CHECKPOINT.md"):
     if not os.path.exists(checkpoint_path):
         return "錯誤：找不到 RESEARCH_STATUS_CHECKPOINT.md"
         
@@ -71,10 +144,13 @@ def extract_pillars(checkpoint_path="RESEARCH_STATUS_CHECKPOINT.md"):
 def generate_report():
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     content = extract_pillars()
+    wiki_content = extract_wiki_updates()
+    proto_content = extract_autonomous_prototypes()
+    content = wiki_content + "\n\n---\n" + proto_content + "\n\n---\n" + content
     full_report = REPORT_TEMPLATE.format(date=date_str, content=content)
     
-    os.makedirs("reports", exist_ok=True)
-    report_path = f"reports/daily_summary_{date_str}.md"
+    os.makedirs("/Users/hao/.openclaw/workspace/ai-accelerator-research/reports", exist_ok=True)
+    report_path = f"/Users/hao/.openclaw/workspace/ai-accelerator-research/reports/daily_summary_{date_str}.md"
     
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(full_report)
