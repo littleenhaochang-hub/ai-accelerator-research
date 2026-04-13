@@ -6,9 +6,6 @@ from datasets import load_dataset
 import os
 import random
 
-# ==============================================================================
-# GPU QAT Pipeline for Google Colab (T4 / A100) - OOM Safe
-# ==============================================================================
 class RoundWithSTE(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
@@ -55,7 +52,6 @@ def run_macro_qat_colab():
     print(f"Executing on: {device}")
     
     model_id = "google/gemma-3-270m"
-    print(f"Loading {model_id} for Full-Model QAT (W1.58A16)...")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     
     model = AutoModelForCausalLM.from_pretrained(
@@ -64,7 +60,6 @@ def run_macro_qat_colab():
         low_cpu_mem_usage=True
     ).to(device)
 
-    # Enable gradient checkpointing for Colab T4 OOM protection
     model.gradient_checkpointing_enable()
 
     num_replaced = replace_linear_with_qat(model)
@@ -80,7 +75,8 @@ def run_macro_qat_colab():
     input_ids = encodings.input_ids[0]
     
     seq_length = 512
-    batch_size = 4  # Reduced for T4 compatibility
+    batch_size = 1           # OOM Defense: Physical batch size 1
+    grad_accum_steps = 4     # Simulate batch size 4
     steps = 10000
     lr = 1e-4
     max_idx = len(input_ids) - seq_length - 1
@@ -89,33 +85,31 @@ def run_macro_qat_colab():
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=steps, eta_min=1e-6)
     
     model.train()
-    print(f"Starting Macro QAT Loop ({steps} steps, Batch={batch_size}, Peak LR={lr})...")
+    print(f"Starting QAT Loop ({steps} steps, GradAccum={grad_accum_steps}, Peak LR={lr})...")
     
+    optimizer.zero_grad()
     for step in range(steps):
-        batch_inputs = []
-        batch_labels = []
-        for _ in range(batch_size):
-            start_idx = random.randint(0, max_idx)
-            chunk = input_ids[start_idx : start_idx + seq_length + 1]
-            batch_inputs.append(chunk[:-1])
-            batch_labels.append(chunk[1:])
-            
-        b_input_ids = torch.stack(batch_inputs).to(device)
-        b_labels = torch.stack(batch_labels).to(device)
+        start_idx = random.randint(0, max_idx)
+        chunk = input_ids[start_idx : start_idx + seq_length + 1]
+        b_input_ids = chunk[:-1].unsqueeze(0).to(device)
+        b_labels = chunk[1:].unsqueeze(0).to(device)
         
-        optimizer.zero_grad()
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
             outputs = model(b_input_ids, labels=b_labels)
-            loss = outputs.loss
+            loss = outputs.loss / grad_accum_steps
             
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
-        scheduler.step()
         
+        if (step + 1) % grad_accum_steps == 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            scheduler.step()
+            optimizer.zero_grad()
+            torch.cuda.empty_cache()
+            
         if (step + 1) % 50 == 0:
             current_lr = scheduler.get_last_lr()[0]
-            print(f"Step {step+1:5d}/{steps} | Loss: {loss.item():.4f} | LR: {current_lr:.2e}")
+            print(f"Step {step+1:5d}/{steps} | Loss: {loss.item()*grad_accum_steps:.4f} | LR: {current_lr:.2e}")
 
         if (step + 1) % 2500 == 0:
             checkpoint_dir = f"./gemma_w158_checkpoint_step_{step+1}"
