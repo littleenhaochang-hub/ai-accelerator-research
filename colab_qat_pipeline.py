@@ -7,17 +7,8 @@ import os
 import random
 
 # ==============================================================================
-# GPU QAT Pipeline for Google Colab (T4 / A100)
+# GPU QAT Pipeline for Google Colab (T4 / A100) - OOM Safe
 # ==============================================================================
-# Instructions for Colab:
-# 1. Install dependencies: 
-#    !pip install torch transformers datasets huggingface_hub accelerate
-# 2. Login to Hugging Face (for Gemma access):
-#    from huggingface_hub import login
-#    login(token="YOUR_HF_TOKEN")
-# 3. Run this script.
-# ==============================================================================
-
 class RoundWithSTE(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
@@ -60,25 +51,25 @@ def replace_linear_with_qat(module, name=""):
     return replaced_count
 
 def run_macro_qat_colab():
-    # Automatically detect CUDA
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Executing on: {device}")
     
     model_id = "google/gemma-3-270m"
-    
     print(f"Loading {model_id} for Full-Model QAT (W1.58A16)...")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    # Using bfloat16 to maximize Tensor Core utilization on A100/A10G
+    
     model = AutoModelForCausalLM.from_pretrained(
         model_id, 
         torch_dtype=torch.bfloat16, 
         low_cpu_mem_usage=True
     ).to(device)
 
+    # Enable gradient checkpointing for Colab T4 OOM protection
+    model.gradient_checkpointing_enable()
+
     num_replaced = replace_linear_with_qat(model)
     print(f"Injected QAT wrappers into {num_replaced} Linear layers.")
     
-    # Freeze non-QAT parameters
     for name, param in model.named_parameters():
         if "weight" not in name and "bias" not in name:
             param.requires_grad = False
@@ -88,9 +79,8 @@ def run_macro_qat_colab():
     encodings = tokenizer("\n\n".join(dataset["text"]), return_tensors="pt")
     input_ids = encodings.input_ids[0]
     
-    # GPU Hyperparameters (Aggressive batching allowed due to VRAM abundance)
     seq_length = 512
-    batch_size = 16   # Colab T4 can easily handle this; increase if using A100
+    batch_size = 4  # Reduced for T4 compatibility
     steps = 10000
     lr = 1e-4
     max_idx = len(input_ids) - seq_length - 1
@@ -114,7 +104,6 @@ def run_macro_qat_colab():
         b_labels = torch.stack(batch_labels).to(device)
         
         optimizer.zero_grad()
-        # Mixed Precision via Autocast for massive speedup
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
             outputs = model(b_input_ids, labels=b_labels)
             loss = outputs.loss
