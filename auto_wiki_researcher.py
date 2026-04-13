@@ -198,6 +198,8 @@ def update_wiki():
         ('all:%22model+architecture%22+AND+(all:LLM+OR+all:SSM+OR+all:MoE)+AND+(all:ICML+OR+all:ICLR+OR+all:arXiv)', "Model_Architecture_CoDesign.md", "模型架構與演算法"),
         ('all:quantization+AND+all:LLM+AND+(all:outlier+OR+all:LUT)', "NF4_LUT_Quantization.md", "量化與離群值處理"),
         ('all:%22hardware+accelerator%22+AND+all:%22beyond+CMOS%22', "Wildcard_Exploration.md", "未知領域盲測")
+
+        ('all:QAT+AND+all:%22Quantization-Aware+Training%22+AND+(all:LLM+OR+all:transformer)+AND+(all:%221.58-bit%22+OR+all:ternary+OR+all:%222-bit%22)', "QAT_Extreme_LowBit.md", "量化感知訓練與極端低位元適應 (QAT & 2-bit)"),
     ]
     
     for q, filename, title in queries:

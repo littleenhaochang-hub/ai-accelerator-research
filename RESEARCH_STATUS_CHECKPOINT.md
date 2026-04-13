@@ -185,3 +185,14 @@ This document serves as the master state-tracker for the AI Accelerator Research
 3. **Pillar 3.1 (Routing):** Explore "Zero-Out" dense routing (setting the token vector to exactly 0.0) to short-circuit the ALU without breaking dense memory contiguous blocks.
 4. **Pillar 5.1 (Edge Training):** Explore Activation-Free Fine-Tuning methods (e.g., zeroth-order optimization or forward-gradient algorithms) to train LoRA without storing the full intermediate computation graph.
 5. **Pillar 1.2 (SSM):** Lowering the block-parallel Mamba logic into actual Apple Metal shaders.
+
+---
+
+## Pillar 8: Quantization-Aware Training (QAT) & Extreme Low-Bit Adaptation
+
+### 8.1 2-Bit (Ternary) QAT Architecture
+- **Status:** New Paradigm Identified.
+- **The Bottleneck:** Post-Training Quantization (PTQ) fails mathematically below 3.40 dB SQNR (the Qwen Death Line) when compressing weights and activations to 2-bit (W2A2 / W2A4). The quantization noise completely overwhelms the neural signal.
+- **Action Plan:** We must implement a Quantization-Aware Training (QAT) pipeline. This involves redefining the Forward Pass to dynamically simulate ternary `[-1, 0, 1]` constraints via Straight-Through Estimators (STE) during backpropagation, forcing the gradients to structurally adapt to the extreme low-bit landscape.
+- **Next Steps:** Prototype a toy QAT loop on a single Transformer block (e.g., Qwen 0.5B FFN) to prove we can train a 2-bit layer that surpasses the 3.40 dB SQNR Death Line.
+
