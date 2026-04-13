@@ -29,6 +29,11 @@ This document serves as the master state-tracker for the AI Accelerator Research
 
 ## Pillar 2: Quantization
 
+### 2.0 Real Checkpoint Evaluation (Pending)
+
+- **Status:** Action Required (Real Checkpoint Evaluation).
+- **The Bottleneck:** Current W4A4 and FP24 Accumulator prototypes rely on random tensors or tiny proxy models (Qwen 0.5B). To prove Edge Tape-out viability, we must fetch the actual target checkpoint (e.g., Gemma-4 26B MoE or Gemma-4 E4B), load the real weights, and execute an end-to-end Perplexity (PPL) and Quantitative Metric comparison using REAL input tokens (e.g., WikiText-2 or Agentic DOM traces).
+
 ### 2.2 1.58-Bit Ternary MACs (BitNet) (`2_2_binary_ternary_mac`)
 - **Status:** Evaluated and Bottleneck Identified.
 - **Findings:** Quantizing weights to `{-1, 0, 1}` removes FP FMA operations, enabling pure Add/Sub matrix multiplications. However, mathematical accuracy dropped to `~5.8 dB` SNR when applied as Post-Training Quantization (PTQ) to standard LLM weights. 
