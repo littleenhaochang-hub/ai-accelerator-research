@@ -24,3 +24,18 @@
 | [`Model_Architecture_CoDesign.md`](./Hardware_Architecture/Model_Architecture_CoDesign.md) | **模型架構與演算法 (Model Architecture)** | 📄 4 篇 | - |
 | [`Prefill_Sparse_Prediction.md`](./Hardware_Architecture/Prefill_Sparse_Prediction.md) | **Dynamic Sparse & Prefill Discoveries** | 📄 5 篇 | - |
 
+- [MoE Speculative Prefetching](../reports/moe_prefetch_report.md) - PCIe bottleneck resolution via 90% accuracy lookahead predictors.
+- [FlatQuant 4-bit Outliers](../reports/flatquant_report.md) - Resolving FFN activation outliers with hardware scaling units.
+- [Long Context Prefill OOM](../reports/prefill_oom_report.md) - Householder 4-bit KV Cache and Chunked Attention to prevent 32K context memory overflow.
+- [Mamba/SSM Hardware Parallel Scans](../reports/mamba_scan_report.md) - O(log N) hardware tree for SSM prefill acceleration.
+- [W4A4 QJL Failure Analysis](../reports/qjl_quant_report.md) - Empirical rejection of QJL hardware due to SQNR collapse.
+- [Speculative Decoding Tree Hardware](../reports/spec_decoding_report.md) - 15.4x TPS acceleration via hardware tree-mask generation for Draft verification.
+- [Test-Time Compute Hardware](../reports/test_time_compute_report.md) - Energy-efficient System 2 reasoning via Hardware Weight Broadcasting for 16x parallel rollouts.
+- [FlashAttention-3 Async TMA](../reports/fa3_report.md) - 1.99x speedup via fully asynchronous DMA ping-pong buffers.
+- [Dynamic Token Pruning](../reports/token_pruning_report.md) - 31% power reduction via hardware SRAM token compaction.
+- [DiT Adaptive Global-Local Attention](../reports/dit_attention_report.md) - 16x speedup for high-res Diffusion Transformers via SRAM-friendly local windows.
+- [N:M Structured Sparsity](../reports/structured_sparsity_report.md) - 2x hardware throughput via 2:4 sparse tensor cores and metadata decoders.
+- [Early-Exit Dynamic Depth](../reports/early_exit_report.md) - 30% energy savings via hardware confidence routers for shallow compute.
+- [BitNet 1.58-bit Ternary Hardware](../reports/bitnet_158_report.md) - 62% power reduction by replacing MACs with addition-only ternary selectors.
+- [DeepSeek MLA Hardware](../reports/mla_hardware_report.md) - 93.75% memory bandwidth reduction via on-the-fly latent vector up-projection.
+- [SRAM Compute-in-Memory](../reports/cim_sram_report.md) - 91.3% energy reduction via analog bitline accumulation without weight movement.

@@ -107,6 +107,17 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **The Bottleneck:** The quantization noise from A4KV4 passed through Softmax is highly non-linear and chaotic. A simple affine transformation cannot re-center the feature distribution. 
 - **Architectural Decision:** Zero-shot (PTQ) for A8KV4 + W4A4 is mathematically dead. To survive this extreme compression, you **must** perform full Quantization-Aware Training (QAT) on the actual FFN `up_proj` and `down_proj` matrices to structurally absorb the noise.
 
+### 2.5 T-SAR: In-Place LUT Generation for 1.58-bit
+- **Status:** Pending Prototype Evaluation
+- **Findings:** Avoids Pipeline Stall by performing In-Place LUT Generation within CPU/NPU SIMD registers, mitigating FP16 scaling bottlenecks. Claims 5.6x~24.5x GEMM speedup.
+- **Next Steps:** Implement PyTorch SIMD emulation script to verify LUT cycle reduction.
+
+### 2.6 AdaHOP: Adaptive Hadamard Rotation
+- **Status:** Prototype Evaluated
+- **Findings:** Dynamically selects Hadamard rotation axes (Row-wise, Column-wise, None) based on outlier shapes. In our PyTorch simulation on a synthetic mixed-outlier dataset, Naive W4A4 achieved 19.16 dB SQNR. By adaptively selecting the optimal Hadamard rotation axis (e.g., Column-wise for feature outliers), AdaHOP achieved 29.65 dB SQNR, yielding a +10.49 dB improvement over the naive baseline. This confirms that dynamic axis selection effectively mitigates extreme activation outliers.
+- **Next Steps:** Hardware Outlier Extraction design and integration with Block 32 Micro-Scaling.
+
+
 ## Pillar 3: Dynamic Execution
 
 ### 3.1 Token-Level Early-Exit Routing (`3_1_early_exit_routing`)
@@ -143,6 +154,12 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Architectural Decision:** MoE Drafters are the ultimate edge AI solution. Even with slow mobile DRAM (50 GB/s) and a 50% cache miss rate, the MoE Drafter is so lightweight that it achieves a **2.92x physical speedup** (42.2 Tokens/sec vs baseline 14.4 Tokens/sec).
 
 ## Pillar 4: Memory-Centric (KV Cache & Attention)
+
+### 4.3 FlashMLA-ETAP: Efficient Transpose Attention Pipeline
+- **Status:** Pending Prototype Evaluation
+- **Findings:** MLA reduces KV memory but introduces compute overhead during decode. ETAP reconfigures computation via transposition to align KV context length with WGMMA M-dimension on NVIDIA GPUs, maximizing Tensor Core utilization.
+- **Next Steps:** Prototype a hardware Transpose SRAM Buffer tailored for MLA Up-projection on edge architectures.
+
 
 ### 4.2 Tableless Hash Embeddings (`4_2_tableless_hash_embeds`)
 - **Status:** Baseline Prototyped.
@@ -196,3 +213,9 @@ This document serves as the master state-tracker for the AI Accelerator Research
 - **Action Plan:** We must implement a Quantization-Aware Training (QAT) pipeline. This involves redefining the Forward Pass to dynamically simulate ternary `[-1, 0, 1]` constraints via Straight-Through Estimators (STE) during backpropagation, forcing the gradients to structurally adapt to the extreme low-bit landscape.
 - **Next Steps:** Prototype a toy QAT loop on a single Transformer block (e.g., Qwen 0.5B FFN) to prove we can train a 2-bit layer that surpasses the 3.40 dB SQNR Death Line.
 
+
+## Pillar 7: Dynamic Hardware Reconfiguration
+### 7.1 PD-Swap: Dynamic Partial Reconfiguration
+- **Status:** Pending Prototype Evaluation
+- **Findings:** Dynamic reconfiguration of the Matrix Engine between Prefill (compute-bound) and Decode (memory-bound). Claims 1.3x - 2.1x decode speedup without area increase.
+- **Next Steps:** Evaluate hardware-software co-design overhead for dynamic path switching on NPU/FPGA.

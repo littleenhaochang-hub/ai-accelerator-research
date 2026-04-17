@@ -1,0 +1,99 @@
+# AI 加速器自動研究系統 (Auto-Researcher) 每日總結報表
+**日期:** 2026-04-11
+
+本報表彙整了 `ai-accelerator-research` 儲存庫中，所有活躍研究支柱 (Research Pillars) 的目前狀態、最新突破與下一步行動。
+
+
+## 🧱 支柱 1: Model Architecture
+### 1.1 SSM / Mamba Hybrids (
+- **原始碼:** `1_2_ssm_mamba_hybrids`
+- **目前狀態:** PyTorch Prototypes Completed.
+- **核心發現:** At 4K context, standard $O(N^2)$ GEMM attention outpaces naive $O(N)$ sequential RNN scans on Apple Silicon (MPS). ...
+- **瓶頸與下一步:** - **Next Steps:** Lowering the block-parallel logic into actual Apple Metal shaders. ...
+### 1.2 Linear Sliding Window (
+- **原始碼:** `1_3_linear_sliding_window`
+- **目前狀態:** Prototyped and Exported.
+- **核心發現:** Implemented an $O(N)$ sliding window attention block tailored for 32K DOM parsing contexts. It efficiently bypasses the massive memory blowup of full ...
+
+## 🧱 支柱 2: Quantization
+### 2.1 1.58-Bit Ternary MACs (BitNet) (
+- **原始碼:** `2_2_binary_ternary_mac`
+- **目前狀態:** Evaluated and Bottleneck Identified.
+- **核心發現:** Quantizing weights to `{-1, 0, 1}` removes FP FMA operations, enabling pure Add/Sub matrix multiplications. However, mathematical accuracy dropped to ...
+- **瓶頸與下一步:** - **The Bottleneck:** While the integer MAC is fast, scaling factors must be multiplied back in FP16 *after* the integer accumulation. This mixed-prec...
+### 2.2 Classical A4A4 Optimizations (
+- **原始碼:** `2_3_a4a4_attention_optimizations`
+- **目前狀態:** Evaluated and Discarded.
+- **核心發現:** - **Methodology:** We established the **Two-Way Validation Principle**: all algorithms must pass both Math SNR (Gate A) and Live LLM Generation (Gate ...
+### 2.3 TurboQuant & Sub-4-Bit Architecture (
+- **原始碼:** `2_4_turboquant`
+- **目前狀態:** Evaluated, Mathematically Formalized, and Verified via Live Qwen 0.5B.
+- **核心發現:** A strict ablation study revealed that compressing both Queries and KV cache to 4-bit (A4KV4) causes a 2 dB "Compounding Penalty" ($e_q \cdot e_k$) tha...
+- **瓶頸與下一步:** - **The Fix for Attention:** Only **TurboQuant (Orthogonal Rotation) + 1-Bit QJL Residual** survived the A4KV4 Softmax cliff, recovering from a 0% to ...
+### 2.4 End-to-End LLM Extreme Quantization: Master Ablation Study (April 2026)
+- **原始碼:** `17_1d_hadamard_ablation.py, 19_strict_2d_hadamard_ffn_a4w4.py, 25_a8kv8_a4w4_benchmark.py`
+- **目前狀態:** Comprehensive Evaluation Completed on Qwen2.5-0.5B-Instruct.
+- **核心發現:** - **Methodology (Fake Quantization & Metrics):** - **W4A4 Block 32 (Sub-Channel Micro-Scaling):** Breakthrough recovery (4.24 dB SNR, 75% Pass Rate). ...
+### 2.5 End-to-End A4KV4 & W4A4 Ablation Studies (April 2026 Breakthrough)
+- **目前狀態:** Evaluated via PyTorch Monkey-Patching on Qwen2.5-0.5B-Instruct.
+### 2.6 Hardware Compensation & QAT Lite (April 2026)
+- **目前狀態:** Evaluated and Bottleneck Identified.
+- **核心發現:** - **Methodology:** Attempted to rescue the catastrophic A8KV4 + W4A4 configuration by inserting a learnable 1D Affine (Scale & Shift) block before the...
+- **瓶頸與下一步:** - **The Bottleneck:** The quantization noise from A4KV4 passed through Softmax is highly non-linear and chaotic. A simple affine transformation cannot...
+
+## 🧱 支柱 3: Dynamic Execution
+### 3.1 Token-Level Early-Exit Routing (
+- **原始碼:** `3_1_early_exit_routing`
+- **目前狀態:** Evaluated and Bottleneck Identified.
+- **核心發現:** Simulated forcing 80% of "easy" tokens to skip the last 8 layers of a 16-layer transformer, achieving a theoretical FLOPs/Latency reduction of `~38%`....
+- **瓶頸與下一步:** - **The Bottleneck:** The PyTorch gather/scatter operations (boolean masking) needed to route tokens introduce severe memory bandwidth overhead. Readi...
+### 3.2 Early-Exit Classifiers (
+- **原始碼:** `3_2_early_exit_classifiers`
+- **目前狀態:** Baseline Prototyped.
+- **核心發現:** Modeled the computational overhead of running a confidence scorer (e.g., an MLP) at every layer boundary. ...
+- **瓶頸與下一步:** - **The Bottleneck:** The latency spent calculating "should I exit?" often exceeds the latency saved by actually exiting. Needs zero-classifier heuris...
+### 3.3 Flexible N:M Structured Sparsity (
+- **原始碼:** `3_3_flexible_nm_sparsity`
+- **目前狀態:** Baseline Prototyped.
+- **核心發現:** Simulated a 2:4 structured sparse weight matrix by masking 50% of elements to zero. ...
+- **瓶頸與下一步:** - **The Bottleneck:** Without specialized tensor cores (like Nvidia Ampere), Apple Silicon and generic Edge NPUs still execute the floating-point math...
+### 3.4 Token Pruning (
+- **原始碼:** `3_1_token_pruning`
+- **目前狀態:** Baseline Prototyped.
+- **核心發現:** Physically dropping 50% of the least-attended tokens halves the sequence length for deeper layers. ...
+- **瓶頸與下一步:** - **The Bottleneck:** Changing the sequence length dynamically destroys static batching and padding on NPUs (like the Apple Neural Engine), forcing sl...
+### 3.5 MoE Drafter Speculative Decoding Bandwidth Simulation (April 2026)
+- **目前狀態:** Cycle-Accurate Memory Simulation Completed.
+- **核心發現:** - **Methodology:** Simulated a 68M parameter MoE Drafter (17M active per token, W4A4 Block 32) on a mobile LPDDR5x interface (50 GB/s) with a 32MB SLC...
+
+## 🧱 支柱 4: Memory-Centric (KV Cache & Attention)
+### 4.1 Tableless Hash Embeddings (
+- **原始碼:** `4_2_tableless_hash_embeds`
+- **目前狀態:** Baseline Prototyped.
+- **核心發現:** Replaced a 131MB embedding table (`32000x4096`) with a 16MB hashed table (`4096x4096`), achieving an 8x memory reduction. ...
+- **瓶頸與下一步:** - **The Bottleneck:** Deterministic hashing creates exact collisions. Multiple unique vocabulary tokens map to the identical vector, destroying semant...
+
+## 🧱 支柱 5: On-Device Learning
+### 5.1 Edge QLoRA Architecture (
+- **原始碼:** `5_1_edge_qlora`
+- **目前狀態:** Evaluated and Bottleneck Identified.
+- **核心發現:** QLoRA successfully compresses trainable parameters to `< 0.4%` of the base LLM. However, it cannot be run on mobile/edge devices for 4K+ contexts. ...
+- **瓶頸與下一步:** - **The Bottleneck:** The Forward Activation Memory Wall. PyTorch must store the full intermediate activation tensor $X$ for every token in the 4K seq...
+### 5.2 Hardware LoRA Updates (
+- **原始碼:** `5_1_hardware_lora_updates`
+- **目前狀態:** Baseline Prototyped.
+- **核心發現:** Modeled the physical memory matrix operations for computing the $dA$ gradient. ...
+- **瓶頸與下一步:** - **The Bottleneck:** Transposing the massive $X$ (Activations) matrix for $X^T \cdot dY \cdot B^T$ completely destroys CPU/GPU cache locality. Needs ...
+### 5.3 Gradient Compression (
+- **原始碼:** `5_2_gradient_compression`
+- **目前狀態:** Baseline Prototyped.
+- **核心發現:** Simulated compressing backprop gradients down to 8-bit. ...
+- **瓶頸與下一步:** - **The Bottleneck:** The presence of a single gradient outlier destroys the dynamic range of the 8-bit scale, causing the MSE error to explode and di...
+
+## 🧱 支柱 6: Diffusion Transformers (DiT)
+### 6.1 Step Distillation & LCM (
+- **原始碼:** `6_1_step_distillation_lcm`
+- **目前狀態:** Baseline Prototyped.
+- **核心發現:** Simulated a 50-step ODE Diffusion solver vs a 4-step Latent Consistency Model (LCM). Proved a `>90%` latency reduction. ...
+- **瓶頸與下一步:** - **The Bottleneck:** LCM enforces smooth trajectories, inherently destroying high-frequency noise sampling and causing outputs to appear blurry and l...
+
