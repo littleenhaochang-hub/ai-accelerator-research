@@ -1,0 +1,18 @@
+<html>
+<body>
+<h1>AI Accelerator Architecture Auto-Research Daily Report</h1>
+<h2>Date: 2026-04-18</h2>
+<h3>Overnight Prototypes Executed:</h3>
+<ul>
+  <li><b>MoE Flash Offloading</b>: Direct UFS 4.0 fetch yields <1 TPS. Proposed Asynchronous Lookahead Prefetcher.</li>
+  <li><b>Vector Quantization (VQ) KV Cache</b>: 8.0x reduction in memory capacity. Proposed SRAM Codebook Decoder Arrays.</li>
+  <li><b>Token Merging (ToMe) Hardware</b>: 1.68x compute speedup. Proposed Hardware Bipartite Matching Engine.</li>
+  <li><b>LSH Sparse Attention Hardware</b>: 21.33x MAC reduction, but destroys SRAM locality. Proposed Hardware Scatter/Gather Engine.</li>
+  <li><b>NormalFloat4 (NF4) Dequantization</b>: 4x bandwidth reduction with 5.37us overhead. Proposed Fused NF4 SRAM Decompressor.</li>
+  <li><b>Activation Sparsity Zero-Skipping</b>: 2.50x compute speedup by skipping 60% zero activations. Proposed Asynchronous Zero-Skipping Controller.</li>
+  <li><b>FP8 vs INT8 Edge MAC Hardware</b>: FP8 incurs 56% area penalty and 75% power penalty. Proposed OCP Microscaling.</li>
+  <li><b>AQLM 3-bit Additive Quantization</b>: 25% memory bandwidth reduction over INT4. Proposed Additive LUT Engine.</li>
+</ul>
+<p>End of Report.</p>
+</body>
+</html>
