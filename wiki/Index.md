@@ -9,3 +9,22 @@
 - [Ternary KV Cache Hardware](../reports/ternary_kv_cache_report.md): 1.58-bit KV 狀態壓縮引擎，挑戰無窮上下文之記憶體物理極限。
 - [SWA Ring Buffer Hardware](../reports/swa_ring_buffer_report.md): 在 SRAM 控制器實作硬體指標，以零延遲支援 Mistral 滑動窗口注意力的自動覆寫與模數尋址。- [Mamba State Decay Engine](../reports/mamba_decay_engine_report.md): 在 SRAM 控制器端內建專用衰減乘法器，加速 SSM 時間衰減矩陣更新，達 6.6 倍速。
 - [DCT KV Cache Compression Hardware](../reports/dct_kv_cache_report.md): 在 SRAM 控制器內建硬體 DCT/IDCT 引擎，透過頻域轉換大幅壓縮長文本 KV Cache，達 6.2 倍速。
+
+- [KAN B-Spline SRAM LUT Hardware](../reports/spline_lut_kan_report.md) - 2026-04-25
+- [Hardware Dynamic Attention Head Gating (HDAG)](../reports/head_gating_hw_report.md) - 2026-04-25
+- [Dynamic Hardware Precision Scaling (DHPS)](../reports/dhps_hw_report.md) - 2026-04-25
+- [Analog PIM Crossbar Attention](../reports/analog_pim_attention_report.md) - 2026-04-25
+- [Hyperdimensional Computing (HDC) XOR Attention Hardware](../reports/hdc_attention_hw_report.md) - 2026-04-25
+- [Hardware Chunk-wise Parallel Linear Attention (CPLA)](../reports/cpla_hw_report.md) - 2026-04-25
+- [SRAM Cuckoo Hash MoE Routing Hardware](../reports/cuckoo_moe_routing_report.md) - 2026-04-25
+- [SRAM Bit-Serial Compute-in-Memory (CIM)](../reports/bit_serial_cim_report.md) - 2026-04-25
+- [Hardware Bloom Filter MoE Routing](../reports/bloom_moe_routing_report.md) - 2026-04-26
+- [Hardware-Accelerated Reversible Transformer Training](../reports/revnet_training_report.md) - 2026-04-26
+- [Hardware Flash-FFT Attention](../reports/flash_fft_hw_report.md) - 2026-04-26
+- [Hardware RWKV Time-Mixer Engine](../reports/rwkv_time_mixer_report.md) - 2026-04-26
+- [Dual-Path Outlier Hardware (DPOH)](../reports/dual_path_outlier_hw_report.md) - 2026-04-26
+- [Hardware Speculative Draft Verifier (HSDV)](../reports/hsdv_tree_verification_report.md) - 2026-04-26
+- [Hardware Delta-Activation Engine (DAE)](../reports/delta_activation_hw_report.md) - 2026-04-26
+- [[MoE P2P Ring DMA Hardware]] - Direct NVMe to NPU expert fetching bypassing CPU.
+- [[Stochastic Computing Hardware]] - Sub-1-bit bitstream logic gate ALUs.
+- [[Hardware Huffman MoE Decompressor]] - Inline variable-length decompression for weights.
