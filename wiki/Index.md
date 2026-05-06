@@ -28,3 +28,20 @@
 - [[MoE P2P Ring DMA Hardware]] - Direct NVMe to NPU expert fetching bypassing CPU.
 - [[Stochastic Computing Hardware]] - Sub-1-bit bitstream logic gate ALUs.
 - [[Hardware Huffman MoE Decompressor]] - Inline variable-length decompression for weights.
+- [Hardware Dynamic Expert Quantization (HDEPQ)](../reports/hw_hdepq_moe_report_zh.md): Evaluated dynamically downcasting secondary MoE experts to INT4 during DMA transfers.
+- [Hardware Attention Cache Bypass (HACB)](../reports/hw_attention_cache_bypass_report_zh.md): Evaluated dynamically bypassing KV cache fetches for low-attention tokens.
+- [Hardware LoRA Caching Engine (HLCE)](../reports/hw_lora_caching_report_zh.md): Evaluated zero-cycle hot-swapping of LoRA weights via dedicated SRAM.
+- [Hardware Sparse Mamba Scan (HSMS)](../reports/hw_sparse_mamba_scan_report_zh.md): Evaluated dynamic zero-skipping in associative scan trees.
+- [Hardware Continuous Batching MMU (HCB-MMU)](../reports/hw_continuous_batch_mmu_report_zh.md): Evaluated hardware page table walking for PagedAttention KV caches.
+- [Hardware Sparse KV Decompression (HSKVD)](../reports/hw_sparse_kv_decomp_report_zh.md): Evaluated inline hardware decompression for sparse KV caches.
+- [Hardware K-Means MoE Router (HKM-MoE)](../reports/hw_kmeans_moe_routing_report_zh.md): Evaluated hardware-accelerated K-Means clustering for semantic MoE routing.
+- [Hardware Speculative Mamba (HSM)](../reports/hw_speculative_mamba_report_zh.md): Evaluated hardware-level speculative decoding for Mamba architectures.
+- [Hardware Linear RNN State Engine (H-LRNN)](../reports/hw_linear_rnn_state_report_zh.md): Evaluated in-SRAM state updates for Linear RNN architectures.
+- [Hardware Cross-Layer Attention Reuse (HCLAR)](../reports/hw_cross_layer_attn_report_zh.md): Evaluated hardware-level reuse of attention maps across transformer layers.
+- [Hardware Dynamic Sparse Flash Attention (HDSFA)](../reports/hw_dynamic_sparse_flash_attention_report_zh.md): Evaluated hardware-level block prediction for sparse FlashAttention.
+- [Hardware Unified KV Cache MMU (HUKV-MMU)](../reports/hw_unified_kv_cache_mmu_report_zh.md): Evaluated hardware-level prefix caching across multiple concurrent instances.
+- [Hardware Token-Adaptive Draft Speculation (HTADS)](../reports/hw_token_adaptive_draft_report_zh.md): Evaluated hardware-level dynamic adjustment of speculative draft lengths.
+- [Hardware Prefix-Tree Speculative Decoding Engine (HPT-SDE)](../reports/hw_prefix_tree_speculative_report_zh.md): Evaluated hardware-level management of tree topologies for Speculative Decoding.
+- [Hardware Hybrid MoE-Dense Router (HMDR)](../reports/hw_hybrid_moe_dense_router_report_zh.md): Evaluated hardware-level dynamic routing of common tokens to a shared dense FFN.
+- [Hardware SRAM Compression Bus (HSCB)](../reports/hw_sram_compression_bus_report_zh.md): Evaluated inline lightweight compression on the internal SRAM-to-MAC bus.
+- [Hardware Speculative Beam Search (HSBS)](../reports/hw_speculative_beam_search_report_zh.md): Evaluated hardware-level management of multi-beam speculative draft states.
