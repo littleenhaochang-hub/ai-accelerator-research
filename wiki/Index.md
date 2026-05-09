@@ -1,47 +1,9 @@
-# AI Accelerator Wiki
+# AI Accelerator Research Wiki Index
 
-## Hardware Architectures
-- [Dual-Pipe MoE Hardware Scheduler](../reports/dual_pipe_moe_report_zh.md): 雙管線 MoE 提取機制，針對 DeepSeek-V3 架構隱藏專家路由延遲。
-- [Prefix Tuning Hardware Offloading](../reports/prefix_tuning_hardware_report.md): 透過硬體 MMU 將虛擬 Prefix 分頁直接映射至實體 KV 暫存，達到零拷貝 PEFT。
-- [LoRA Context Switch Hardware](../reports/lora_switch_hardware_report.md): 透過 SRAM Bank 切換達成零週期 LoRA 權重置換。
-- [In-SRAM LoRA Merging Hardware](../reports/insram_lora_merge_report.md): 在 SRAM 讀取放大器端整合微型加法器，實現讀取時動態零成本 LoRA 合併，針對多 Agent 環境極度最佳化。
-- [Dynamic Precision KV Controller](../reports/dynamic_precision_kv_report.md): 根據注意力分數即時調降背景 Token 精確度至 INT2，保留 Sink Token 在 FP16，大幅減少記憶體頻寬需求。
-- [Ternary KV Cache Hardware](../reports/ternary_kv_cache_report.md): 1.58-bit KV 狀態壓縮引擎，挑戰無窮上下文之記憶體物理極限。
-- [SWA Ring Buffer Hardware](../reports/swa_ring_buffer_report.md): 在 SRAM 控制器實作硬體指標，以零延遲支援 Mistral 滑動窗口注意力的自動覆寫與模數尋址。- [Mamba State Decay Engine](../reports/mamba_decay_engine_report.md): 在 SRAM 控制器端內建專用衰減乘法器，加速 SSM 時間衰減矩陣更新，達 6.6 倍速。
-- [DCT KV Cache Compression Hardware](../reports/dct_kv_cache_report.md): 在 SRAM 控制器內建硬體 DCT/IDCT 引擎，透過頻域轉換大幅壓縮長文本 KV Cache，達 6.2 倍速。
+## 1. Core Architecture Blueprint
+- W3A4 / KV3 Quantization (AQLM, FlatQuant, TurboQuant-CHR)
+- Gemma-4 MoE Zipfian LFU Caching
+- DOM-Minifier for Edge Agents
 
-- [KAN B-Spline SRAM LUT Hardware](../reports/spline_lut_kan_report.md) - 2026-04-25
-- [Hardware Dynamic Attention Head Gating (HDAG)](../reports/head_gating_hw_report.md) - 2026-04-25
-- [Dynamic Hardware Precision Scaling (DHPS)](../reports/dhps_hw_report.md) - 2026-04-25
-- [Analog PIM Crossbar Attention](../reports/analog_pim_attention_report.md) - 2026-04-25
-- [Hyperdimensional Computing (HDC) XOR Attention Hardware](../reports/hdc_attention_hw_report.md) - 2026-04-25
-- [Hardware Chunk-wise Parallel Linear Attention (CPLA)](../reports/cpla_hw_report.md) - 2026-04-25
-- [SRAM Cuckoo Hash MoE Routing Hardware](../reports/cuckoo_moe_routing_report.md) - 2026-04-25
-- [SRAM Bit-Serial Compute-in-Memory (CIM)](../reports/bit_serial_cim_report.md) - 2026-04-25
-- [Hardware Bloom Filter MoE Routing](../reports/bloom_moe_routing_report.md) - 2026-04-26
-- [Hardware-Accelerated Reversible Transformer Training](../reports/revnet_training_report.md) - 2026-04-26
-- [Hardware Flash-FFT Attention](../reports/flash_fft_hw_report.md) - 2026-04-26
-- [Hardware RWKV Time-Mixer Engine](../reports/rwkv_time_mixer_report.md) - 2026-04-26
-- [Dual-Path Outlier Hardware (DPOH)](../reports/dual_path_outlier_hw_report.md) - 2026-04-26
-- [Hardware Speculative Draft Verifier (HSDV)](../reports/hsdv_tree_verification_report.md) - 2026-04-26
-- [Hardware Delta-Activation Engine (DAE)](../reports/delta_activation_hw_report.md) - 2026-04-26
-- [[MoE P2P Ring DMA Hardware]] - Direct NVMe to NPU expert fetching bypassing CPU.
-- [[Stochastic Computing Hardware]] - Sub-1-bit bitstream logic gate ALUs.
-- [[Hardware Huffman MoE Decompressor]] - Inline variable-length decompression for weights.
-- [Hardware Dynamic Expert Quantization (HDEPQ)](../reports/hw_hdepq_moe_report_zh.md): Evaluated dynamically downcasting secondary MoE experts to INT4 during DMA transfers.
-- [Hardware Attention Cache Bypass (HACB)](../reports/hw_attention_cache_bypass_report_zh.md): Evaluated dynamically bypassing KV cache fetches for low-attention tokens.
-- [Hardware LoRA Caching Engine (HLCE)](../reports/hw_lora_caching_report_zh.md): Evaluated zero-cycle hot-swapping of LoRA weights via dedicated SRAM.
-- [Hardware Sparse Mamba Scan (HSMS)](../reports/hw_sparse_mamba_scan_report_zh.md): Evaluated dynamic zero-skipping in associative scan trees.
-- [Hardware Continuous Batching MMU (HCB-MMU)](../reports/hw_continuous_batch_mmu_report_zh.md): Evaluated hardware page table walking for PagedAttention KV caches.
-- [Hardware Sparse KV Decompression (HSKVD)](../reports/hw_sparse_kv_decomp_report_zh.md): Evaluated inline hardware decompression for sparse KV caches.
-- [Hardware K-Means MoE Router (HKM-MoE)](../reports/hw_kmeans_moe_routing_report_zh.md): Evaluated hardware-accelerated K-Means clustering for semantic MoE routing.
-- [Hardware Speculative Mamba (HSM)](../reports/hw_speculative_mamba_report_zh.md): Evaluated hardware-level speculative decoding for Mamba architectures.
-- [Hardware Linear RNN State Engine (H-LRNN)](../reports/hw_linear_rnn_state_report_zh.md): Evaluated in-SRAM state updates for Linear RNN architectures.
-- [Hardware Cross-Layer Attention Reuse (HCLAR)](../reports/hw_cross_layer_attn_report_zh.md): Evaluated hardware-level reuse of attention maps across transformer layers.
-- [Hardware Dynamic Sparse Flash Attention (HDSFA)](../reports/hw_dynamic_sparse_flash_attention_report_zh.md): Evaluated hardware-level block prediction for sparse FlashAttention.
-- [Hardware Unified KV Cache MMU (HUKV-MMU)](../reports/hw_unified_kv_cache_mmu_report_zh.md): Evaluated hardware-level prefix caching across multiple concurrent instances.
-- [Hardware Token-Adaptive Draft Speculation (HTADS)](../reports/hw_token_adaptive_draft_report_zh.md): Evaluated hardware-level dynamic adjustment of speculative draft lengths.
-- [Hardware Prefix-Tree Speculative Decoding Engine (HPT-SDE)](../reports/hw_prefix_tree_speculative_report_zh.md): Evaluated hardware-level management of tree topologies for Speculative Decoding.
-- [Hardware Hybrid MoE-Dense Router (HMDR)](../reports/hw_hybrid_moe_dense_router_report_zh.md): Evaluated hardware-level dynamic routing of common tokens to a shared dense FFN.
-- [Hardware SRAM Compression Bus (HSCB)](../reports/hw_sram_compression_bus_report_zh.md): Evaluated inline lightweight compression on the internal SRAM-to-MAC bus.
-- [Hardware Speculative Beam Search (HSBS)](../reports/hw_speculative_beam_search_report_zh.md): Evaluated hardware-level management of multi-beam speculative draft states.
+## 2. Experimental Prototypes
+- [2026 NPU Prototypes (HW-SAE, HW-PEFT, etc.)](NPU_Prototypes_2026.md)
