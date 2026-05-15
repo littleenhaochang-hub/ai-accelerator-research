@@ -14,3 +14,7 @@
 - HW-MCTS-SRAM (Hardware Monte Carlo Tree Search Manager): SRAM hash table for UCB score tracking.
 - Latent Space Reasoning & Recurrent Transformers (Bypassing KV Cache Memory Wall)
 - Parallel Test-Time Scaling & Hardware Verification Trees (HW-HTS)
+
+- [MoE Asynchronous Prefetching](MoE_Async_Prefetch.md)
+
+- [Hardware Ternary KV Cache Engine](HW_TKVCE.md)
