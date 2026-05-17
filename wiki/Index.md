@@ -18,3 +18,7 @@
 - [MoE Asynchronous Prefetching](MoE_Async_Prefetch.md)
 
 - [Hardware Ternary KV Cache Engine](HW_TKVCE.md)
+
+- [Hardware MTP V3 Scheduler](HW_MTP_V3.md)
+
+- [Hardware Stochastic Computing MAC](HW_SC_MAC.md)
