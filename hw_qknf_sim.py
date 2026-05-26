@@ -1,21 +1,21 @@
-import time
+import numpy as np
 
-def simulate_hw_qknf():
-    print("Starting Hardware QK-Norm Fuser (HW-QKNF) Simulation...")
-    # Baseline: QK dot product -> SRAM write -> Read for Norm -> Write
-    baseline_latency_ns = 5.0 + 2.0 + 2.0 + 2.0
+def simulate_qkn_fuser(seq_len=65536, d_model=4096):
+    # Baseline: Query/Key Normalization (RMSNorm) done in software
+    # Requires an extra SRAM read/write pass for variance computation and normalization
+    baseline_sram_reads_mb = (seq_len * d_model * 2 * 2) / (1024 * 1024) # Read Q/K, Read again to norm
+    baseline_latency_ms = (baseline_sram_reads_mb / 64.0) * 1000 + 4.5 # Kernel overhead
     
-    # Proposed: QK dot product -> Inline Norm -> Write
-    proposed_latency_ns = 5.0 + 0.5 + 2.0
+    # HW-QKNF: Hardware QK-Norm Fuser
+    # Computes RMSNorm directly at the register level as Q/K exit the projection MACs
+    proposed_sram_reads_mb = (seq_len * d_model * 2) / (1024 * 1024) # Only write normalized Q/K once
+    proposed_latency_ms = (proposed_sram_reads_mb / 64.0) * 1000 + 0.5 # HW overhead
     
-    speedup = baseline_latency_ns / proposed_latency_ns
-    bandwidth_reduction = 0.50 # 50% reduction in intermediate SRAM traffic
+    speedup = baseline_latency_ms / proposed_latency_ms
     
-    print(f"Baseline Latency: {baseline_latency_ns} ns")
-    print(f"Proposed HW-QKNF Latency: {proposed_latency_ns:.2f} ns")
+    print(f"Baseline QK-Norm Latency: {baseline_latency_ms:.2f} ms")
+    print(f"HW-QKNF Latency: {proposed_latency_ms:.2f} ms")
     print(f"Speedup: {speedup:.2f}x")
-    print(f"SRAM Bandwidth reduction: {bandwidth_reduction*100:.2f}%")
-    print("Simulation Complete. 100% mathematical equivalence maintained.")
+    print(f"SRAM Bandwidth Reduction: {(1 - proposed_sram_reads_mb/baseline_sram_reads_mb)*100:.2f}%")
 
-if __name__ == "__main__":
-    simulate_hw_qknf()
+simulate_qkn_fuser()

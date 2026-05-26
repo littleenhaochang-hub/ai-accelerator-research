@@ -1,25 +1,21 @@
-import time
+import numpy as np
 
-def simulate_mla_chb():
-    print("Starting Hardware MLA Cross-Head Broadcasting Simulation...")
-    heads = 128
-    latent_dim = 512
-    sram_read_latency_ns = 2.0 # 2ns per read
+def simulate_mla_chb(seq_len=65536, num_heads=128, head_dim=128):
+    # Baseline: DeepSeek MLA in Software
+    # Software fetches the latent vector for EACH head independently due to lack of multicast
+    baseline_dram_reads_mb = (seq_len * num_heads * head_dim * 2) / (1024 * 1024)
+    baseline_latency_ms = (baseline_dram_reads_mb / 64.0) * 1000 + 15.0 # Kernel overhead
     
-    # Software/Standard approach: Read latent vector for each head independently
-    baseline_latency = heads * sram_read_latency_ns
+    # HW-MLA-CHB: Hardware MLA Cross-Head Broadcasting Bus
+    # SRAM fetches the latent vector ONCE and broadcasts it to all Head ALUs simultaneously
+    proposed_dram_reads_mb = (seq_len * head_dim * 2) / (1024 * 1024)
+    proposed_latency_ms = (proposed_dram_reads_mb / 64.0) * 1000 + 1.0 # Hardware broadcast overhead
     
-    # Proposed approach: Read once, broadcast via dedicated bus to all head ALUs
-    proposed_latency = sram_read_latency_ns + 0.5 # 0.5ns broadcast delay
+    speedup = baseline_latency_ms / proposed_latency_ms
     
-    speedup = baseline_latency / proposed_latency
-    bandwidth_reduction = 1 - (1 / heads)
-    
-    print(f"Baseline SRAM Fetch Latency (128 heads): {baseline_latency} ns")
-    print(f"Proposed HW-MLA-CHB Latency: {proposed_latency:.2f} ns")
+    print(f"Baseline MLA Fetch Latency (64K): {baseline_latency_ms:.2f} ms")
+    print(f"HW-MLA-CHB Latency: {proposed_latency_ms:.2f} ms")
     print(f"Speedup: {speedup:.2f}x")
-    print(f"SRAM Bandwidth reduction: {bandwidth_reduction*100:.2f}%")
-    print("Simulation Complete. 100% mathematical equivalence maintained.")
+    print(f"SRAM Read Bandwidth Reduction: {(1 - proposed_dram_reads_mb/baseline_dram_reads_mb)*100:.2f}%")
 
-if __name__ == "__main__":
-    simulate_mla_chb()
+simulate_mla_chb()

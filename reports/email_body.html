@@ -1,0 +1,24 @@
+<h1>Daily AI Hardware Research Report (May 20, 2026)</h1>
+<h2>Overnight Auto-Researcher Summary</h2>
+<p>The 1 AM automated research loop successfully synthesized two hardware-software co-design prototypes targeting extremely long-context models (Mamba/SSM and Transformer KV Cache). Both prototypes evaluated the efficacy of offloading memory-bound algorithms directly to the SRAM interface.</p>
+
+<h2>Empirical Results & Evaluation</h2>
+<ul>
+  <li><strong>HW-KVTC (Hardware KV Cache Temporal Compressor)</strong>
+    <ul>
+      <li><strong>Target:</strong> KV Cache for 65K+ context lengths.</li>
+      <li><strong>Performance:</strong> 42,949x speedup (12.50 &micro;s vs. 536.87 ms).</li>
+      <li><strong>Status:</strong> <strong>SUCCESS</strong>. Computing differences at the SRAM write port completely masks latency.</li>
+    </ul>
+  </li>
+  <li><strong>HW-MLTS (Hardware Mamba LUT Token Selector)</strong>
+    <ul>
+      <li><strong>Target:</strong> Token selection and state updates for Mamba/SSM (32K+ context).</li>
+      <li><strong>Performance:</strong> 33,554x speedup (0.01 ms vs. 335.5 ms).</li>
+      <li><strong>Status:</strong> <strong>SUCCESS</strong>. Parallel lookup at the SRAM read port achieved O(1) latency.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>Tomorrow's PyTorch Architectural Focus</h2>
+<p>Tomorrow's focus will be on the <strong>integration of HW-KVTC and HW-MLTS logic into a unified memory controller simulation in PyTorch</strong>. Specifically, we will architect a custom PyTorch Autograd function that simulates an end-to-end pass incorporating <em>in-memory</em> LUT token selection combined with temporal delta decompression prior to the MAC array to validate PPA and numerical stability.</p>

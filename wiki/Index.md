@@ -22,3 +22,38 @@
 - [Hardware MTP V3 Scheduler](HW_MTP_V3.md)
 
 - [Hardware Stochastic Computing MAC](HW_SC_MAC.md)
+
+- [HW-MECAD](HW_MECAD.md): Hardware MoE Expert Caching and Asynchronous Decompression
+- [HW-MLA-SBQ](HW_MLA_SBQ.md): Hardware MLA Sub-Byte Quantizer
+- [HW-DAS](HW_DAS.md): Hardware DiT Activation Sparsifier
+- [HW-SKCP](HW_SKCP.md): Hardware Sparse K-Cache Predictor
+- [HW-STPM](HW_STPM.md): Hardware Speculative Tree Pointer Manager
+- [HW-MLA-Absorber](HW_MLA_Absorber.md): Hardware MLA RoPE Absorber
+- [HW-BFP4-KVC](HW_BFP4_KVC.md): Hardware Block-Floating-Point 4-bit KV Cache Engine
+- [HW-NUTQ](HW_NUTQ.md): Hardware Non-Uniform Token Quantizer
+- [HW-TTCR](HW_TTCR.md): Hardware Test-Time Compute Router
+- [HW-MoA-Router](HW_MoA_Router.md): Hardware Mixture-of-Agents Router
+- [HW-PMBE](HW_PMBE.md): Hardware Parallel Mamba Block Evaluator
+- [HW-GCS](HW_GCS.md): Hardware Gated Convolution Scheduler
+- [HW-ADLC](HW_ADLC.md): Hardware Adaptive Draft-Length Controller
+- [HW-LCE](HW_LCE.md): Hardware Local Cache Evictor
+- [HW-DPKVC](HW_DPKVC.md): Hardware Dynamic Precision KV Cache
+- [HW-SME](HW_SME.md): Hardware State Memory Evaluator
+- [HW-SVE](HW_SVE.md): Hardware Sparse Vector Extractor
+- [HW-LTT](HW_LTT.md): Hardware Lookahead Token Truncator
+- [HW-LRE](HW_LRE.md): Hardware Local Routing Evaluator
+- [HW-SCE](HW_SCE.md): Hardware Semantic Clustering Evaluator- [Hardware Mamba-MoE PIM-LUT Router](HW_Mamba_MoE_PIM_LUT.md) - 2026-05-25: 9.54x speedup via PIM-LUT.
+- [Hardware KV Cache Low-Rank Matrix Approximation (HW-LRMA)](HW_KV_LRMA.md) - 2026-05-25: 4.17x speedup via hardware low-rank restoration.
+- [Hardware SSM Normalization Engine (HW-SSM-Norm)](HW_SSM_Norm.md) - 2026-05-25: 6.17x speedup.
+- [Hardware MoE Gating Cache (HW-MGC)](HW_MGC.md) - 2026-05-25: 8.45x speedup.
+- [Hardware MoE State Space Router (HW-MSSR)](HW_MSSR.md) - 2026-05-25: 4.77x speedup.
+- [Hardware Token-Level Speculative Masking Engine (HW-TLSME)](HW_TLSME.md) - 2026-05-25: 4.37x speedup.
+- [Hardware Block-Level Sparsity Predictor (HW-BLSP)](HW_BLSP.md) - 2026-05-25: 3.78x speedup.
+- [Hardware Token-Level KV Cache Delta Encoder (HW-TKVC-DE)](HW_TKVC_DE.md) - 2026-05-25: 4.25x speedup.
+- [Hardware Adaptive GQA Router (HW-AGQAR)](HW_AGQAR.md) - 2026-05-25: 2.85x speedup.
+- [Hardware Activation Pre-Fetcher (HW-APF)](HW_APF.md) - 2026-05-25: 1.83x speedup.
+- [Hardware Token-Level KV Compressor (HW-TLKVC)](HW_TLKVC.md) - 2026-05-25: 3.66x speedup.
+- [Hardware Dynamic KV Cache Resizer (HW-DKVR)](HW_DKVR.md) - 2026-05-25: 2.76x speedup.
+- [Hardware GLA PWL Evaluator (HW-GLA-PWL)](HW_GLA_PWL.md) - 2026-05-26: 2.99x speedup.
+- [Hardware Dynamic Patch Dropper (HW-DPD)](HW_DPD.md) - 2026-05-26: 2.43x speedup.
+- [Hardware GQA Token Broadcaster](HW_GQA_Broadcaster.md) - 2026-05-26: 3.08x speedup.
