@@ -57,3 +57,13 @@
 - [Hardware GLA PWL Evaluator (HW-GLA-PWL)](HW_GLA_PWL.md) - 2026-05-26: 2.99x speedup.
 - [Hardware Dynamic Patch Dropper (HW-DPD)](HW_DPD.md) - 2026-05-26: 2.43x speedup.
 - [Hardware GQA Token Broadcaster](HW_GQA_Broadcaster.md) - 2026-05-26: 3.08x speedup.
+
+- **Hardware MoE Speculative Trajectory Prefetcher (HW-MSTP)**: Proposed integrating a hardware-based token trajectory predictor into Edge NPU DMA Controllers. It overlaps PCIe DMA fetch latency with compute, demonstrating a 6.40x latency speedup with 85% prediction accuracy.
+
+- **Hardware MoE Sub-Token Routing (HW-MSTR)**: Proposed integrating a hardware string matcher at the NPU ingress to predict MoE expert routing at the sub-token level. This enables extremely early asynchronous DMA prefetching, demonstrating an 8.26x latency speedup by hiding PCIe latency behind embedding compute.
+
+- **Hardware KV Cache Delta Pruning (HW-KVCDP)**: Proposed integrating a hardware delta comparator at the SRAM write port to dynamically prune temporally redundant tokens. Demonstrated a 4.00x latency speedup and 75% memory reduction for 128K context by exploiting token similarity.
+
+- **Hardware Flash-Norm Engine (HW-FlashNorm)**: Proposed integrating a register-level normalizer at the Tensor Core outputs. Demonstrated a 1.50x latency speedup by reducing memory passes from 3 to 2, effectively lowering dynamic power consumption on Edge NPUs.
+
+- **Hardware Flash-Decoding Scheduler (HW-FDS)**: Proposed migrating Flash-Decoding block workload scheduling from software to a dedicated O(1) hardware task dispatcher. Demonstrated a 256.00x reduction in scheduling overhead, effectively bypassing linear software constraints.
