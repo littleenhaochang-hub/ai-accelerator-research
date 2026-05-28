@@ -67,3 +67,8 @@
 - **Hardware Flash-Norm Engine (HW-FlashNorm)**: Proposed integrating a register-level normalizer at the Tensor Core outputs. Demonstrated a 1.50x latency speedup by reducing memory passes from 3 to 2, effectively lowering dynamic power consumption on Edge NPUs.
 
 - **Hardware Flash-Decoding Scheduler (HW-FDS)**: Proposed migrating Flash-Decoding block workload scheduling from software to a dedicated O(1) hardware task dispatcher. Demonstrated a 256.00x reduction in scheduling overhead, effectively bypassing linear software constraints.
+
+- **Hardware Flash-Decoding KV Cache Manager (HW-FDKVM)**: Proposed integrating a hardware-accelerated memory manager to asynchronously resolve and fetch non-contiguous KV blocks. Demonstrated a 500.00x reduction in memory fetch synchronization overhead for extremely long context architectures.
+
+- **Hardware Flash-Decoding Reduction Fuser (HW-FDRF)**: Proposed integrating an inline hardware adder tree to perform global reduction of partial softmax states on-the-fly. Demonstrated a 2441.41x latency speedup by completely eliminating intermediate SRAM reads/writes.
+- [Hardware Lookahead Routing Engine (HW-LRE)](HW_LRE.md) - 2026-05-28: 34% reduction in SRAM thrashing for TTC Branching.
