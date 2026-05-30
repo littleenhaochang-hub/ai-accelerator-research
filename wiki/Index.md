@@ -72,3 +72,14 @@
 
 - **Hardware Flash-Decoding Reduction Fuser (HW-FDRF)**: Proposed integrating an inline hardware adder tree to perform global reduction of partial softmax states on-the-fly. Demonstrated a 2441.41x latency speedup by completely eliminating intermediate SRAM reads/writes.
 - [Hardware Lookahead Routing Engine (HW-LRE)](HW_LRE.md) - 2026-05-28: 34% reduction in SRAM thrashing for TTC Branching.
+- [Hardware CXL-PIM MoE Router](../reports/hw_cxl_pim_moe_report_zh.md) - CXL-PIM simulation showing 3.20x speedup and 90.0% bandwidth reduction.
+- [Hardware FlashAttention Asynchronous Scheduler](../reports/hw_fa_async_scheduler_report_zh.md) - HW-FAAS simulation showing 2.67x speedup.
+- [Hardware Dynamic Token Dropper](../reports/hw_token_dropper_report_zh.md) - HW-DTD simulation showing 3.46x speedup.
+- [Hardware SSM Block Fuser](../reports/hw_ssm_block_fuser_report_zh.md) - HW-SBF simulation showing 4.17x speedup.
+- [Hardware Cross-Die Memory Compression](../reports/hw_cross_die_compression_report_zh.md) - HW-CDMC simulation showing 3.85x speedup.
+- [Hardware Speculative Decoding Co-Processor](../reports/hw_spec_decoding_coproc_report_zh.md) - HW-SDCP simulation showing 4.17x speedup.
+- [Hardware RAG Context Broadcaster](../reports/hw_rag_context_broadcaster_report_zh.md) - HW-RCB simulation showing 5.29x speedup.
+- [Hardware Speculative Memory Allocator](../reports/hw_sma_report_zh.md) - HW-SMA simulation showing 5.24x speedup.
+- [Hardware Prefix-Cache Deduplicator](../reports/hw_prefix_cache_dedup_report_zh.md) - HW-PCD simulation showing 5.43x speedup.
+- [Hardware MoE Token-Centric Scheduler](../reports/hw_moe_token_centric_scheduler_report_zh.md) - HW-TCS simulation showing 5.82x speedup.
+- [Hardware Logarithmic KV Compression](../reports/hw_log_kv_compression_report_zh.md) - HW-LKVC simulation showing 5.56x speedup.
