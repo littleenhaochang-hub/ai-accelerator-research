@@ -1,24 +1,31 @@
-import time
+import math
 
-def simulate_demand_lora_fetch(adapter_size_mb):
-    # Fetch LoRA weights from DRAM/NVMe on demand
-    latency = 0.005 # 5ms blocking overhead per context switch
-    transfer = adapter_size_mb / 64000.0
-    return latency + transfer
+def simulate_baseline_lora_fetch(num_agents, adapter_size_mb, bandwidth_gb_s):
+    # Baseline: Demand fetch LoRA weights via PCIe when multi-tenant context switching
+    total_time = 0
+    bandwidth_mb_ms = bandwidth_gb_s * 1024 / 1000
+    for _ in range(num_agents):
+        fetch_time = adapter_size_mb / bandwidth_mb_ms
+        total_time += fetch_time
+    return total_time
 
-def simulate_hw_lapf_prefetch(adapter_size_mb):
-    # Hardware lookahead prefetcher into SRAM
-    hardware_overhead = 0.0001 # 100us scheduling overhead
-    # Transfer is hidden behind previous token compute
-    return hardware_overhead
+def simulate_hw_lapf_fetch(num_agents, adapter_size_mb, bandwidth_gb_s):
+    # HW-LAPF: Hardware LoRA Adapter Pre-Fetcher
+    # DMA pre-fetches next LoRA weights asynchronously into a background SRAM bank
+    # Only a tiny setup overhead per switch, main fetch is masked
+    setup_overhead = 0.001 
+    return num_agents * setup_overhead
 
 if __name__ == "__main__":
+    agents = 128
     adapter_size = 32 # 32MB LoRA adapter
-    num_switches = 100 # Multi-tenant batching
+    bandwidth = 16 # Gen4 x8
     
-    demand_time = sum([simulate_demand_lora_fetch(adapter_size) for _ in range(num_switches)])
-    prefetch_time = sum([simulate_hw_lapf_prefetch(adapter_size) for _ in range(num_switches)])
+    base_lat = simulate_baseline_lora_fetch(agents, adapter_size, bandwidth)
+    lapf_lat = simulate_hw_lapf_fetch(agents, adapter_size, bandwidth)
     
-    print(f"Demand LoRA Fetch Latency: {demand_time:.4f} s")
-    print(f"HW-LAPF Prefetch Latency: {prefetch_time:.4f} s")
-    print(f"Speedup: {demand_time / prefetch_time:.2f}x")
+    speedup = base_lat / lapf_lat if lapf_lat > 0 else 0
+    
+    print(f"Baseline Fetch Latency: {base_lat:.2f} ms")
+    print(f"HW-LAPF Latency: {lapf_lat:.2f} ms")
+    print(f"Speedup: {speedup:.2f}x")

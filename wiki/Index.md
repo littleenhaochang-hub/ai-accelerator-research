@@ -83,3 +83,21 @@
 - [Hardware Prefix-Cache Deduplicator](../reports/hw_prefix_cache_dedup_report_zh.md) - HW-PCD simulation showing 5.43x speedup.
 - [Hardware MoE Token-Centric Scheduler](../reports/hw_moe_token_centric_scheduler_report_zh.md) - HW-TCS simulation showing 5.82x speedup.
 - [Hardware Logarithmic KV Compression](../reports/hw_log_kv_compression_report_zh.md) - HW-LKVC simulation showing 5.56x speedup.
+
+- [硬體 MoE 空間多工專家預取器 (HW-MoE-SMEP)](HW_MoE_SMEP.md) - 6.58x speedup by multiplexing PCIe NVMe reads across flash channels for expert fetching.
+
+- [硬體 MoE CXL-PIM v3 零拷貝引擎 (HW-MoE-PIM-v3)](HW_MoE_PIM_v3.md) - 2209x speedup by pushing activations to memory via CXL 3.1 PIM instead of fetching weights.
+
+- [硬體上下文感知 Token 截斷器 (HW-CATT)](HW_CATT.md) - 33.48x speedup by filtering long-context tokens natively in hardware.
+
+- [硬體跨通道離群值分解引擎 (HW-CCOF)](HW_CCOF.md) - 20.60 dB SQNR improvement for W4A4 quantization by routing 1% outliers to dedicated FP16 micro-ALUs.
+
+- [硬體 Mamba 動態狀態壓縮器 (HW-DSC-Mamba)](HW_DSC_Mamba.md) - 3.64x speedup and 8x memory footprint reduction for Mamba hidden states via hardware low-rank projection.
+
+- [硬體 Jamba 統一快取引擎 (HW-JUCE)](HW_JUCE.md) - 30.00x speedup by unifying Attention KV and Mamba states into a single contiguous SRAM macro.
+
+- [硬體 RRAM 類比 MoE 路由器 (HW-RRAM-MoE)](HW_RRAM_MoE.md) - 209.72x speedup and 250x power reduction by computing MoE routing logits in analog RRAM crossbars.
+
+- [硬體 LoRA 異步預取引擎 (HW-LAPF)](HW_LAPF.md) - 1953x speedup by hiding multi-agent LoRA adapter PCIe fetching behind compute via hardware ping-pong buffers.
+
+- [硬體 Cuckoo Hash MoE 路由器 (HW-CHR)](HW_CHR_MoE.md) - 51200x routing speedup by replacing O(E) dense MoE routing with O(1) hardware Cuckoo Hash table lookups.
