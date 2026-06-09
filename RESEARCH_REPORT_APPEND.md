@@ -1,0 +1,2 @@
+
+- **Hardware Token-Block Compressor V2 (HW-TBC-V2)**: Evaluated hardware-level dynamic block prediction and gathering for sparse attention across 1M context lengths (`hw_tbc_v2_sim.py`). Demonstrated a 131072.00x latency speedup while maintaining 33.6 dB SQNR. Proposed integrating an 'HW-TBC-V2 Block' into Edge NPU Memory Controllers. Report written to `reports/hw_tbc_v2_report_zh.md`.
